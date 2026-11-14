@@ -1,0 +1,95 @@
+/* Change Autocomplete styles in Chrome*/
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus {
+    border: 0px solid black;
+    background-color: #707CD2;
+    -webkit-text-fill-color: #707CD2;
+    -webkit-box-shadow: 0 0 0px 1000px white inset;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+html {
+    overflow-x: hidden !important; 
+}
+.center {
+    text-align: center;
+}
+.text-bold {
+    font-weight: bold;
+}
+
+td {
+    vertical-align: middle !important;
+}
+.form-control {
+    box-shadow: none !important;
+}
+
+.preview {
+    -moz-column-count: 6;
+    -webkit-column-count: 6;
+    column-count: 6;
+}
+
+.image-item {
+    position: relative;
+    display: inline-block
+}
+
+.remove-image {
+    position: absolute;
+    width: 15px;
+    height: 15px;
+    right: 8px;
+    top: 8px;
+    color: #fff;
+    font-size: 19px;
+    vertical-align: top;
+    line-height: 15px;
+    cursor: pointer
+}
+
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+    /* display: none; <- Crashes Chrome on hover */
+    -webkit-appearance: none;
+    margin: 0; /* <-- Apparently some margin are still there even though it's hidden */
+}
+
+input[type=number] {
+    -moz-appearance:textfield; /* Firefox */
+}
+
+input[data-price="true"] {
+    padding: 0 12px !important
+}
+
+.logo-xs {
+    display: none;
+}
+
+.vcenter {
+    display: flex;
+    align-items: center;
+}
+
+@media (max-width: 767px) {
+    .logo-xs {
+        display: inline-block;
+    }
+
+    .logo-lg {
+        display: none;
+    }
+
+    .top-left-part {
+        width: 80px;
+    }
+}

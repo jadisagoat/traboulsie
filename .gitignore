@@ -1,0 +1,12 @@
+vendor/
+uploads/*
+!uploads/.htaccess
+.env
+/backup/
+/docs/
+# Large archives and logs
+*.zip
+error_log
+
+# Private keys and passwords
+application/config/secrets.php

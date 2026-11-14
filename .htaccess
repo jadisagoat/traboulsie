@@ -1,0 +1,30 @@
+Options -Indexes
+
+# files that must never be downloaded: logs, database dumps, backups
+<FilesMatch "(^error_log$|\.(log|sql|bak|old|tgz|gz|env|ini)$)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order deny,allow
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # HTTPS on every page. Turn on (remove the # of the 3 lines below) once the
+    # SSL certificate is active on the hosting, otherwise the site stops opening.
+    # RewriteCond %{HTTPS} off
+    # RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)
+    # RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+
+    # internal folders
+    RewriteRule ^(docs|application|system)(/|$) - [F,L]
+
+    # Send every request that isn't a real file or folder to CodeIgniter
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^(.*)$ index.php/$1 [L]
+</IfModule>
