@@ -20,7 +20,7 @@ class Security_guard {
 	// pre_controller: the sessions are kept in the ci_sessions table, create it on first run
 	function sessions_table()
 	{
-		$flag = APPPATH.'cache/sessions_table.ok';
+		$flag = APPPATH.'cache/sessions_table.v2.ok';
 		if (is_file($flag)) return;
 
 		require_once(BASEPATH.'database/DB.php');
@@ -34,7 +34,26 @@ class Security_guard {
 			PRIMARY KEY (`session_id`),
 			KEY `last_activity` (`last_activity`)
 		) ENGINE=InnoDB DEFAULT CHARSET=utf8");
-		@file_put_contents($flag, date('c'));
+
+		// the table is only trusted once it exists with every column the session library reads:
+		// on a hosting where the database user may not CREATE tables, or where an old ci_sessions
+		// table has other columns, the SELECT of the session fails and the whole site returned a 500
+		$ok = $db->table_exists('ci_sessions');
+		foreach (array('session_id', 'ip_address', 'user_agent', 'last_activity', 'user_data') as $field)
+		{
+			if ($ok && ! $db->field_exists($field, 'ci_sessions')) $ok = FALSE;
+		}
+		if ($ok)
+		{
+			@file_put_contents($flag, date('c'));
+			return;
+		}
+
+		// no usable table: keep the sessions in the (signed) cookie instead of crashing,
+		// and check again on the next request. To fix for good run docs/ci_sessions.sql in phpMyAdmin.
+		$config =& load_class('Config', 'core');
+		$config->set_item('sess_use_database', FALSE);
+		log_message('error', 'ci_sessions table missing or incomplete, sessions kept in the cookie. Run docs/ci_sessions.sql');
 	}
 
 	// post_controller_constructor: runs before every page and every action
