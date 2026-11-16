@@ -38,7 +38,7 @@ class Seo extends CI_Controller {
 		$url = base_url();
 		$t = "User-agent: *\n";
 		$t .= "Allow: /\n";
-		foreach (array('application/', 'system/', 'docs/', 'cgi-bin/', 'back_office/', 'cms', 'index.php/back_office/', 'option1', 'option2', 'option3', 'option4', 'option5') as $path) {
+		foreach (array('application/', 'system/', 'docs/', 'cgi-bin/', 'back_office/', 'cms', 'index.php/back_office/', 'option5') as $path) {
 			$t .= "Disallow: /".$path."\n";
 		}
 		$t .= "\nSitemap: ".$url."sitemap.xml\n";

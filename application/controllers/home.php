@@ -1,59 +1,37 @@
 <?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 class Home extends CI_Controller {
 
-// the home page shows the design chosen in back_office/home_page (option 1 by default)
+// the home page (English); the Arabic page is yoursite/ar
 public function index()
 {
-$data=$this->_page_data();
-$design=in_array($data['home_page']['site_design'],array('2','3','4','5')) ? (int)$data['home_page']['site_design'] : 1;
-$this->_render($data,$design,base_url());
+$this->_render($this->_page_data(),base_url());
 }
 
-// preview links, whatever design is chosen in the back office
-public function option1()
+// the old preview links of the removed designs 1 to 4 now lead to the home page
+public function old_design()
 {
-$this->_render($this->_page_data(),1,base_url().'option1');
-}
-
-public function option2()
-{
-$this->_render($this->_page_data(),2,base_url().'option2');
-}
-
-public function option3()
-{
-$this->_render($this->_page_data(),3,base_url().'option3');
-}
-
-public function option4()
-{
-$this->_render($this->_page_data(),4,base_url().'option4');
+redirect(base_url(),'location',301);
 }
 
 // the bilingual design: yoursite/option5 (English) and yoursite/option5/ar (Arabic)
 public function option5($lang='en')
 {
 $lang=$lang=='ar' ? 'ar' : 'en';
-$this->_render($this->_page_data(),5,base_url().($lang=='ar' ? 'ar' : 'option5'),$lang);
+$this->_render($this->_page_data(),base_url().($lang=='ar' ? 'ar' : 'option5'),$lang);
 }
 
-// the Arabic page of the website (design 5, whatever design is chosen for the English page)
+// the Arabic page of the website
 public function ar()
 {
-$this->_render($this->_page_data(),5,base_url().'ar','ar');
+$this->_render($this->_page_data(),base_url().'ar','ar');
 }
 
-function _render($data,$design,$page_url,$lang='en')
+function _render($data,$page_url,$lang='en')
 {
 $data['page_url']=$page_url;
 $data['lang']=$lang;
-if($design>=2 && $design<=5){
-	$data['content']='option'.$design.'/home';
-	$this->load->view('option'.$design.'/template',$data);
-}else{
-	$data['content']='home';
-	$this->load->view('template',$data);
-}
+$data['content']='option5/home';
+$this->load->view('option5/template',$data);
 }
 
 // everything both designs show, and the contact form

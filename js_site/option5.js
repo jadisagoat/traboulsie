@@ -63,6 +63,9 @@
 	if (motion && loader && !root.classList.contains('skip-loader')) {
 		var loaderBar = $('#loaderBar');
 		var loaderNum = $('#loaderNum');
+		var loaderYear = $('#loaderYear');
+		var yearFrom = loaderYear ? parseInt(loaderYear.getAttribute('data-from'), 10) : 0;
+		var yearTo = loaderYear ? parseInt(loaderYear.getAttribute('data-to'), 10) : 0;
 		var started = Date.now();
 		var finished = false;
 		// the intro lasts at least 1.1 s and never more than 2.4 s (Facebook and the map can load slowly)
@@ -71,19 +74,22 @@
 			finished = true;
 			loaderBar.style.transform = 'scaleX(1)';
 			loaderNum.textContent = '100';
+			if (loaderYear) loaderYear.textContent = yearTo;
 			loader.classList.add('is-done');
 			try { sessionStorage.setItem('o5-intro', '1'); } catch (err) {}
 			setTimeout(ready, 450);
 			setTimeout(function () { loader.style.display = 'none'; }, 1300);
 		};
-		var whenLoaded = function () { setTimeout(finish, Math.max(0, 1100 - (Date.now() - started))); };
+		var whenLoaded = function () { setTimeout(finish, Math.max(0, 1900 - (Date.now() - started))); };
 		if (doc.readyState === 'complete') whenLoaded(); else window.addEventListener('load', whenLoaded);
-		setTimeout(finish, 2400);
+		setTimeout(finish, 2800);
 		(function tick() {
 			if (finished) return;
 			var p = Math.min(0.96, (Date.now() - started) / 2400);
 			loaderBar.style.transform = 'scaleX(' + p.toFixed(3) + ')';
 			loaderNum.textContent = Math.round(p * 100);
+			// the year counts from the founding year to today
+			if (loaderYear) loaderYear.textContent = Math.round(yearFrom + (yearTo - yearFrom) * Math.min(1, (Date.now() - started) / 1700));
 			requestAnimationFrame(tick);
 		})();
 	} else heroWhenLoaded();
@@ -663,9 +669,13 @@
 		}
 
 		// quote: the words light up one after the other as the page scrolls
+		// the words of the services light up in the brand gradient
+		var keyWords = /^(refrigerat|showcase|grill|stainless|restaurant|hotel|supermarket|butcher|baker|pastr|hospital|caf|kitchen|البرادات|الشوايات|الستانلس|المطاعم|الفنادق|السوبرماركت|الملاحم|الأفران|المستشفيات|ثلاجات)/i;
 		$$('[data-words]').forEach(function (el) {
 			el.innerHTML = el.textContent.split(/(\s+)/).map(function (part) {
-				return /^\s+$/.test(part) ? part : '<span class="hw">' + part.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span>';
+				if (/^\s+$/.test(part)) return part;
+				var bare = part.replace(/^[^\w؀-ۿ]+/, '').replace(/^و(?=ال)/, '');
+				return '<span class="hw' + (keyWords.test(bare) ? ' is-key' : '') + '">' + part.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span>';
 			}).join('');
 			gsap.fromTo($$('.hw', el), { opacity: 0.14 }, { opacity: 1, stagger: 0.08, ease: 'none', scrollTrigger: { trigger: el, start: 'top 82%', end: 'bottom 50%', scrub: true } });
 		});
@@ -766,4 +776,107 @@
 
 	/* ---------- Scroll to the form after it was sent ---------- */
 	if ($('#main-contact-form .alert')) scrollToId('contact');
+})();
+
+
+/* ---------- Welding sparks (intro and hero), the hero follows the mouse ---------- */
+(function () {
+	'use strict';
+	var root = document.documentElement;
+	if (!root.classList.contains('motion') || root.classList.contains('motion-off')) return;
+	var small = window.matchMedia('(max-width: 760px)').matches;
+
+	// a shower of sparks from one point: bursts of glowing streaks that fall with gravity
+	function sparks(canvas, opts) {
+		if (!canvas || !canvas.getContext) return null;
+		var ctx = canvas.getContext('2d');
+		var dpr = Math.min(2, window.devicePixelRatio || 1);
+		var w = 0, h = 0, parts = [], running = false, nextBurst = 0, flash = 0;
+		function size() {
+			var r = canvas.getBoundingClientRect();
+			w = r.width; h = r.height;
+			canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+			ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+		}
+		function burst() {
+			var o = opts.origin(w, h);
+			var n = Math.round((small ? 0.55 : 1) * (opts.min + Math.random() * (opts.max - opts.min)));
+			for (var i = 0; i < n; i++) {
+				var a = opts.angle + (Math.random() - 0.5) * opts.spread;
+				var v = opts.speed * (0.35 + Math.random() * 0.9);
+				parts.push({ x: o.x, y: o.y, px: o.x, py: o.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0, max: 35 + Math.random() * 55, hue: 18 + Math.random() * 28 });
+			}
+			flash = 1;
+		}
+		function frame(t) {
+			if (!running) return;
+			if (t > nextBurst) { burst(); nextBurst = t + opts.every * (0.45 + Math.random()); }
+			ctx.clearRect(0, 0, w, h);
+			ctx.globalCompositeOperation = 'lighter';
+			if (flash > 0.02) {
+				var o = opts.origin(w, h);
+				var g = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, 90);
+				g.addColorStop(0, 'rgba(255,190,120,' + (0.55 * flash) + ')');
+				g.addColorStop(1, 'rgba(255,90,40,0)');
+				ctx.fillStyle = g; ctx.beginPath(); ctx.arc(o.x, o.y, 90, 0, 6.283); ctx.fill();
+				flash *= 0.9;
+			}
+			ctx.lineCap = 'round';
+			for (var i = parts.length - 1; i >= 0; i--) {
+				var p = parts[i];
+				p.px = p.x; p.py = p.y;
+				p.vy += 0.16; p.vx *= 0.985;
+				p.x += p.vx; p.y += p.vy; p.life++;
+				var k = 1 - p.life / p.max;
+				if (k <= 0 || p.y > h + 20) { parts.splice(i, 1); continue; }
+				ctx.strokeStyle = 'hsla(' + p.hue + ',100%,' + (55 + k * 30) + '%,' + k + ')';
+				ctx.lineWidth = 0.8 + k * 2.4;
+				ctx.beginPath(); ctx.moveTo(p.px - p.vx * 2.2, p.py - p.vy * 2.2); ctx.lineTo(p.x, p.y); ctx.stroke();
+			}
+			requestAnimationFrame(frame);
+		}
+		size();
+		window.addEventListener('resize', size);
+		return {
+			start: function () { if (!running) { running = true; requestAnimationFrame(frame); } },
+			stop: function () { running = false; }
+		};
+	}
+
+	// intro: sparks rise and fall around the year
+	var intro = sparks(document.getElementById('loaderSparks'), {
+		origin: function (w, h) { return { x: w / 2 + (Math.random() - 0.5) * 160, y: h / 2 + 70 }; },
+		angle: -Math.PI / 2, spread: 1.9, speed: 9, min: 22, max: 46, every: 240
+	});
+	var loader = document.getElementById('loader');
+	if (intro && loader && !root.classList.contains('skip-loader')) {
+		intro.start();
+		setTimeout(function () { intro.stop(); }, 3400);
+	}
+
+	// hero: a welder at the bottom corner, sparks thrown up towards the middle of the photo
+	var rtl = root.getAttribute('dir') === 'rtl';
+	var hero = document.getElementById('home');
+	var heroSparks = sparks(document.getElementById('heroSparks'), {
+		origin: function (w, h) { return { x: rtl ? -12 : w + 12, y: h + 10 }; },
+		angle: rtl ? -Math.PI * 0.3 : -Math.PI * 0.7, spread: 1.0, speed: small ? 10 : 15, min: 30, max: 60, every: 650
+	});
+	if (heroSparks && hero) {
+		if ('IntersectionObserver' in window) {
+			new IntersectionObserver(function (entries) {
+				entries[0].isIntersecting && !document.hidden ? heroSparks.start() : heroSparks.stop();
+			}).observe(hero);
+		} else heroSparks.start();
+		document.addEventListener('visibilitychange', function () { document.hidden ? heroSparks.stop() : heroSparks.start(); });
+	}
+
+	// the hero texts, stamp and cards move a little with the mouse
+	if (hero && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+		hero.addEventListener('mousemove', function (e) {
+			var r = hero.getBoundingClientRect();
+			hero.style.setProperty('--mx', ((e.clientX - r.left) / r.width - 0.5).toFixed(3));
+			hero.style.setProperty('--my', ((e.clientY - r.top) / r.height - 0.5).toFixed(3));
+		});
+		hero.addEventListener('mouseleave', function () { hero.style.setProperty('--mx', 0); hero.style.setProperty('--my', 0); });
+	}
 })();

@@ -42,13 +42,13 @@
 
 $route['default_controller'] = "home"; 
 $route['cms'] = "back_office/home";
-$route['option1'] = "home/option1";
-$route['option2'] = "home/option2";
-$route['option3'] = "home/option3";
-$route['option4'] = "home/option4";
+$route['option1'] = "home/old_design"; // removed designs 1 to 4: 301 to the home page
+$route['option2'] = "home/old_design";
+$route['option3'] = "home/old_design";
+$route['option4'] = "home/old_design";
 $route['option5'] = "home/option5";
 $route['option5/ar'] = "home/option5/ar";
-$route['ar'] = "home/ar"; // the Arabic page (design 5)
+$route['ar'] = "home/ar"; // the Arabic page
 $route['sitemap.xml'] = "seo/sitemap";
 $route['robots.txt'] = "seo/robots";
 $route['Traboulsi-Est'] = "seo/old"; // address of the old website

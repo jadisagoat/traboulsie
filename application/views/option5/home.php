@@ -14,6 +14,14 @@ if(!function_exists('o5_e')){
 	}
 	// translated + escaped
 	function o5_te($s){ return o5_e(o5_t($s)); }
+	// product name on the Arabic page: "Showcase Fridge 108" -> "برّاد عرض 108"
+	function o5_pname($s){
+		if(empty($GLOBALS['o5_lang']) || $GLOBALS['o5_lang'] != 'ar') return $s;
+		$num = preg_match('/\s(\d{1,4})\s*$/', $s, $m) ? $m[1] : '';
+		$type = trim($num === '' ? $s : substr($s, 0, -strlen($m[0])));
+		foreach($GLOBALS['o5_pdict'] as $en => $ar){ if(strcasecmp($en, $type) == 0) return trim($ar.' '.$num); }
+		return $s;
+	}
 	function o5_title($s){
 		$s = ucwords(strtolower(preg_replace('/\s+/', ' ', trim(html_entity_decode($s, ENT_QUOTES, 'UTF-8')))));
 		return preg_replace_callback('/(?<=\s)(And|Or|Of|For|The)(?=\s)/', function($m){ return strtolower($m[1]); }, $s);
@@ -55,6 +63,7 @@ $o5_dict = $this->config->item('site_lang_ar', 'site_lang');
 // the view runs inside a function: the translation helper reads the language from $GLOBALS
 $GLOBALS['o5_lang'] = $o5_lang;
 $GLOBALS['o5_dict'] = $o5_dict;
+$GLOBALS['o5_pdict'] = (array)$this->config->item('site_products_ar', 'site_lang');
 $this->config->load('seo_defaults', TRUE);
 $sd = $this->config->item('seo_defaults', 'seo_defaults');
 
@@ -155,6 +164,8 @@ foreach($products as $product){
 	$file = is_file('uploads/products/600x455/'.$product['image']) ? 'uploads/products/600x455/'.$product['image'] : 'uploads/products/290x220/'.$product['image'];
 	if($product['image'] !== '' && is_file($file)) $fb_photos[] = array('src' => $file, 'title' => isset($product['alt']) ? $product['alt'] : $product['title']);
 }
+// the photo descriptions in the language of the page
+foreach($fb_photos as $k => $photo) $fb_photos[$k]['title'] = $is_ar ? o5_pname(o5_t(preg_replace('/ - .*$/', '', $photo['title']))).' | مؤسسة طرابلسي - لبنان' : $photo['title'];
 $band_img = count($hero_images) ? $hero_images[count($hero_images) - 1]['src'] : (count($showroom) ? $showroom[0]['src'] : '');
 $company = o5_t(o5_or($hp['contact_company'], 'Traboulsi Est. for Trading & Industry'));
 
@@ -206,8 +217,11 @@ if(!count($faq)) unset($nav['faq']);
 
 <div class="loader" id="loader" aria-hidden="true">
 	<div class="loader-panel"></div>
+	<canvas class="loader-sparks" id="loaderSparks"></canvas>
 	<div class="loader-inner">
 		<img src="<?=$base?>images/logo.png" width="300" height="54" alt="<?=o5_e($company)?>">
+		<b class="loader-year" id="loaderYear" data-from="<?=$founded ? $founded : 1982?>" data-to="<?=date('Y')?>"><?=$founded ? $founded : 1982?></b>
+		<p class="loader-tag"><?=$is_ar ? 'صناعة لبنانية منذ '.($founded ? $founded : 1982) : 'Made in Lebanon since '.($founded ? $founded : 1982)?></p>
 		<div class="loader-bar"><span id="loaderBar"></span></div>
 		<b class="loader-num" id="loaderNum">0</b>
 	</div>
@@ -224,9 +238,9 @@ if(!count($faq)) unset($nav['faq']);
 				<?php if($contact['email']){ ?><a href="mailto:<?=o5_e($contact['email'])?>"><svg class="ic"><use href="#i-mail"/></svg><?=o5_e($contact['email'])?></a><?php } ?>
 			</div>
 			<div class="topbar-side">
-				<?php if($is_ar){ ?><span class="latin"><?=o5_e(o5_or($hp['contact_company'], 'Traboulsi Est.'))?></span><?php }else{ ?><?=o5_tag('<span class="ar" lang="ar" dir="rtl">', $hp['topbar_name_ar'], '</span>')?><?php } ?>
+				<?php if($is_ar){ ?><span><?=o5_e(o5_or($hp['topbar_name_ar'], 'مؤسسة طرابلسي للتجارة والصناعة'))?></span><?php }else{ ?><span class="latin"><?=o5_e(o5_or($hp['contact_company'], 'Traboulsi Est. for Trading & Industry'))?></span><?php } ?>
 				<a class="lang-switch" href="<?=$is_ar ? $url_en : $url_ar?>" hreflang="<?=$is_ar ? 'en' : 'ar'?>" lang="<?=$is_ar ? 'en' : 'ar'?>" dir="<?=$is_ar ? 'ltr' : 'rtl'?>"><svg class="ic"><use href="#i-globe"/></svg><?=$is_ar ? 'English' : 'عربي'?></a>
-				<?php if(!empty($contact_us['facebook'])){ ?><a href="<?=o5_e($contact_us['facebook'])?>" target="_blank" rel="noopener" aria-label="Facebook"><svg class="ic"><use href="#i-facebook"/></svg></a><?php } ?>
+				<?php if(!empty($contact_us['facebook'])){ ?><a href="<?=o5_e($contact_us['facebook'])?>" target="_blank" rel="noopener" aria-label="<?=o5_te('Facebook')?>"><svg class="ic"><use href="#i-facebook"/></svg></a><?php } ?>
 				<?php if(!empty($contact_us['instagram'])){ ?><a href="<?=o5_e($contact_us['instagram'])?>" target="_blank" rel="noopener" aria-label="Instagram"><svg class="ic"><use href="#i-instagram"/></svg></a><?php } ?>
 			</div>
 		</div>
@@ -238,7 +252,7 @@ if(!count($faq)) unset($nav['faq']);
 				<img src="<?=$base?>images/logo.png" width="300" height="54" alt="<?=o5_e($company)?><?=$founded ? ' — '.o5_t('Since').' '.$founded : ''?>">
 			</a>
 
-			<nav class="nav" id="nav" aria-label="Main">
+			<nav class="nav" id="nav" aria-label="<?=o5_te('Main')?>">
 				<ul>
 					<?php foreach($nav as $id => $label){
 						if($id == 'products'){ ?>
@@ -280,10 +294,19 @@ if(!count($faq)) unset($nav['faq']);
 <section id="home" class="slider" aria-roledescription="carousel" aria-label="<?=o5_e($company)?>">
 	<div class="slides">
 		<?php foreach($hero_images as $i => $image){ ?>
-		<div class="slide<?=$i == 0 ? ' is-active' : ''?>"><img src="<?=$base.o5_e($image['src'])?>" alt="<?=o5_e($image['title'])?>" <?=$i == 0 ? 'fetchpriority="high"' : 'fetchpriority="low"'?>></div>
+		<div class="slide<?=$i == 0 ? ' is-active' : ''?>"><img src="<?=$base.o5_e($image['src'])?>" alt="<?=o5_te($image['title'])?>" <?=$i == 0 ? 'fetchpriority="high"' : 'fetchpriority="low"'?>></div>
 		<?php } ?>
 	</div>
 	<div class="slider-shade" aria-hidden="true"></div>
+	<canvas class="hero-sparks" id="heroSparks" aria-hidden="true"></canvas>
+	<div class="hero-stamp" aria-hidden="true">
+		<svg viewBox="0 0 200 200"><defs><path id="stampPath" d="M100,100 m-80,0 a80,80 0 1,1 160,0 a80,80 0 1,1 -160,0"/></defs><text><textPath href="#stampPath"<?=$is_ar ? '' : ' textLength="490"'?>><?php if($is_ar){ ?>صناعة لبنانية • منذ <?=$founded ? $founded : 1982?> • صناعة لبنانية • منذ <?=$founded ? $founded : 1982?> • <?php }else{ ?>MADE IN LEBANON • SINCE <?=$founded ? $founded : 1982?> • TRABOULSI EST. • <?php } ?></textPath></text></svg>
+		<span class="stamp-core"><b><?=$founded ? $founded : 1982?></b><small><?=$is_ar ? 'تأسست' : 'EST.'?></small></span>
+	</div>
+	<div class="hero-chips" aria-hidden="true">
+		<span class="hero-chip chip-factory"><i class="live-dot"></i><span><b><?=o5_te('Factory')?></b><small><?=o5_te('Deir El Zahrani')?></small></span></span>
+		<span class="hero-chip chip-branch"><svg class="ic"><use href="#i-pin"/></svg><span><b><?=o5_te('Branch')?></b><small><?=o5_te('Khalde · Beirut')?></small></span></span>
+	</div>
 	<div class="container slider-caption">
 		<?=o5_tag('<p class="hero-eyebrow">', $hp['hero_eyebrow'], '</p>')?>
 		<?php if($is_ar && trim($hp['hero_title_ar']) !== ''){ ?><h1 class="hero-title"><?=o5_lines($hp['hero_title_ar'])?></h1>
@@ -306,22 +329,28 @@ if(!count($faq)) unset($nav['faq']);
 	<?php } ?>
 </section>
 
+<!-- ============ Two crossing bands with what we do ============ -->
+<?php $tape_words = $is_ar ? array('تصنيع', 'برادات', 'ستانلس ستيل', 'شوايات', 'غرف تبريد', 'معدات مطابخ', 'تركيب', 'صيانة', 'صناعة لبنانية') : array('Manufacturing', 'Refrigeration', 'Stainless steel', 'Grills', 'Cold rooms', 'Kitchen equipment', 'Installation', 'Maintenance', 'Made in Lebanon'); ?>
+<div class="tapes" aria-hidden="true">
+	<div class="tape tape-a"><div class="tape-track"><?php for($copy = 0; $copy < 2; $copy++){ foreach($tape_words as $word){ ?><span><?=o5_e($word)?></span><i>✦</i><?php } } ?></div></div>
+	<div class="tape tape-b"><div class="tape-track"><?php for($copy = 0; $copy < 2; $copy++){ foreach(array_reverse($tape_words) as $word){ ?><span><?=o5_e($word)?></span><i>✦</i><?php } } ?></div></div>
+</div>
+
 <!-- ============ Quote + key figures ============ -->
 <section class="quote">
 	<?php if($founded){ ?><div class="ghost-year" aria-hidden="true" data-drift><?=$founded?></div><?php } ?>
 	<div class="container narrow">
+		<?php if($founded){ ?><p class="quote-badge" data-reveal="up"><span class="pulse-dot" aria-hidden="true"></span><?=$is_ar ? 'منذ '.$founded.' · لبنان' : 'Since '.$founded.' · Lebanon'?></p><?php } ?>
 		<h2 class="quote-title" data-reveal="split"><?=$is_ar ? '&ldquo;'.o5_e(o5_or($hp['topbar_name_ar'], 'مؤسسة طرابلسي')).'&rdquo;' : '&ldquo;TRABOULSI EST.&rdquo;'?></h2>
-		<?php if($is_ar){ ?>
 		<?=o5_tag('<p class="lead" data-words>', $hp['hero_text'], '</p>')?>
-		<?php }else{ ?>
-		<?=o5_tag('<p class="lead" data-words>', $hp['hero_text'], '</p>')?>
-		<?=o5_tag('<p class="lead-ar" lang="ar" dir="rtl" data-reveal="up" style="--d:220ms">', $hp['hero_text_ar'], '</p>')?>
-		<?php } ?>
+		<?php // "We equip ..." with the sectors changing one after the other
+		$equip_words = $is_ar ? array('المطاعم', 'الفنادق', 'السوبرماركت', 'الملاحم', 'الأفران والحلويات', 'المقاهي', 'المستشفيات') : array('restaurants', 'hotels', 'supermarkets', 'butcheries', 'bakeries & pastry shops', 'cafés', 'hospitals'); ?>
+		<p class="equip-line" data-reveal="up" style="--d:150ms"><span class="equip-lead"><?=o5_te('We equip')?></span> <span class="equip-rotator" style="--n:<?=count($equip_words)?>"><?php foreach($equip_words as $i => $word){ ?><span style="--i:<?=$i?>"<?=$i ? ' aria-hidden="true"' : ''?>><?=o5_e($word)?></span><?php } ?></span></p>
 		<ul class="figures">
-			<?php if($years){ ?><li data-reveal="up" style="--d:100ms"><strong><span data-count="<?=$years?>"><?=$years?></span>+</strong><?=o5_te(o5_or($hp['stat_years_label'], 'Years of experience'))?></li><?php } ?>
-			<li data-reveal="up" style="--d:200ms"><strong><span data-count="<?=$stat_products?>"><?=$stat_products?></span>+</strong><?=o5_te(o5_or($hp['stat_products_label'], 'Products'))?></li>
-			<?php if($stat_sectors){ ?><li data-reveal="up" style="--d:250ms"><strong><span data-count="<?=$stat_sectors?>"><?=$stat_sectors?></span></strong><?=o5_te(o5_or($hp['stat_sectors_label'], 'Business sectors equipped'))?></li><?php } ?>
-			<?php if($stat_clients){ ?><li data-reveal="up" style="--d:300ms"><strong><span data-count="<?=$stat_clients?>"><?=$stat_clients?></span>+</strong><?=o5_te(o5_or($hp['stat_clients_label'], 'Clients'))?></li><?php } ?>
+			<?php if($years){ ?><li data-reveal="up" style="--d:100ms"><span class="fig-icon" aria-hidden="true"><svg class="ic"><use href="#i-wrench"/></svg></span><strong><span data-count="<?=$years?>"><?=$years?></span>+</strong><span class="fig-label"><?=o5_te(o5_or($hp['stat_years_label'], 'Years of experience'))?></span></li><?php } ?>
+			<li data-reveal="up" style="--d:200ms"><span class="fig-icon" aria-hidden="true"><svg class="ic"><use href="#i-fridge"/></svg></span><strong><span data-count="<?=$stat_products?>"><?=$stat_products?></span>+</strong><span class="fig-label"><?=o5_te(o5_or($hp['stat_products_label'], 'Products'))?></span></li>
+			<?php if($stat_sectors){ ?><li data-reveal="up" style="--d:250ms"><span class="fig-icon" aria-hidden="true"><svg class="ic"><use href="#i-layers"/></svg></span><strong><span data-count="<?=$stat_sectors?>"><?=$stat_sectors?></span></strong><span class="fig-label"><?=o5_te(o5_or($hp['stat_sectors_label'], 'Business sectors equipped'))?></span></li><?php } ?>
+			<?php if($stat_clients){ ?><li data-reveal="up" style="--d:300ms"><span class="fig-icon" aria-hidden="true"><svg class="ic"><use href="#i-building"/></svg></span><strong><span data-count="<?=$stat_clients?>"><?=$stat_clients?></span>+</strong><span class="fig-label"><?=o5_te(o5_or($hp['stat_clients_label'], 'Clients'))?></span></li><?php } ?>
 		</ul>
 	</div>
 </section>
@@ -386,7 +415,8 @@ if(!count($faq)) unset($nav['faq']);
 	<div class="p-list is-rows" id="productList">
 		<?php foreach($products as $n => $product){
 			$cat = isset($cat_names[$product['id_category']]) ? $cat_names[$product['id_category']] : '';
-			$name = o5_name($product['title']);
+			$name = o5_pname(o5_name($product['title']));
+			$alt = $is_ar ? $name.' - '.o5_t($cat).' | مؤسسة طرابلسي - لبنان' : $product['alt'];
 			$text = $is_ar ? $product['text_ar'] : $product['text_en'];
 			if($text === '') $text = o5_t(o5_icon($cat, $cat_texts, $cat_texts['default']));
 			$big = is_file('uploads/products/600x455/'.$product['image']) ? 'uploads/products/600x455/' : 'uploads/products/290x220/';
@@ -397,11 +427,11 @@ if(!count($faq)) unset($nav['faq']);
 				<a class="p-img<?=($size && $size[1] < 380) ? ' is-small' : ''?>" href="<?=$base.$big.o5_e($product['image'])?>" aria-label="<?=o5_te('View')?> <?=o5_e($name)?>" data-cursor="<?=o5_te('View')?>">
 					<span class="p-disc" aria-hidden="true"></span>
 					<?php if(preg_match('/(\d{2,4})\s*$/', $product['title'], $ref)){ ?><span class="p-ghost" aria-hidden="true"><?=$ref[1]?></span><?php } ?>
-					<img src="<?=$base.$big.o5_e($product['image'])?>" alt="<?=o5_e($product['alt'])?>" loading="lazy" style="--max-h:<?=$max_h?>px"<?php if($size){ ?> width="<?=$size[0]?>" height="<?=$size[1]?>"<?php } ?>>
+					<img src="<?=$base.$big.o5_e($product['image'])?>" alt="<?=o5_e($alt)?>" loading="lazy" style="--max-h:<?=$max_h?>px"<?php if($size){ ?> width="<?=$size[0]?>" height="<?=$size[1]?>"<?php } ?>>
 				</a>
 				<div class="p-text">
 					<span class="p-cat"><?=o5_e($cat)?></span>
-					<h3 class="p-name"<?=$is_ar ? ' dir="ltr"' : ''?>><?=o5_e($name)?></h3>
+					<h3 class="p-name"><?=o5_e($name)?></h3>
 					<p class="p-desc"><?=o5_e($text)?></p>
 					<div class="p-actions">
 						<button type="button" class="btn-more" data-more><span><?=o5_te('More')?></span><svg class="ic"><use href="#i-plus"/></svg></button>
@@ -516,7 +546,7 @@ if(!count($faq)) unset($nav['faq']);
 	<?php if(count($unique_clients)){ ?>
 	<div class="marquee" aria-hidden="true">
 		<div class="marquee-skew" id="marqueeSkew"><div class="marquee-track">
-			<?php for($copy = 0; $copy < 2; $copy++){ foreach($unique_clients as $client_name){ ?><span><?=o5_e($client_name)?></span><?php } } ?>
+			<?php for($copy = 0; $copy < 2; $copy++){ foreach($unique_clients as $client_name){ ?><span><?=o5_te($client_name)?></span><?php } } ?>
 		</div></div>
 	</div>
 	<?php } ?>
@@ -533,7 +563,7 @@ if(!count($faq)) unset($nav['faq']);
 				</div>
 				<?php if(count($group['names'])){ ?>
 				<ul>
-					<?php foreach($group['names'] as $client_name){ ?><li><?=o5_e($client_name)?></li><?php } ?>
+					<?php foreach($group['names'] as $client_name){ ?><li><?=o5_te($client_name)?></li><?php } ?>
 				</ul>
 				<?php }else{ ?>
 				<div class="c-raw"><?=$group['description']?></div>
@@ -562,7 +592,7 @@ if(!count($faq)) unset($nav['faq']);
 			<a href="<?=$base.o5_e($photo['src'])?>" class="show-item" data-gallery data-reveal="zoom" style="--d:<?=min($i, 3) * 120?>ms" aria-label="<?=o5_te('Open photo')?> <?=$i + 1?>">
 				<img src="<?=$base.o5_e($photo['src'])?>" alt="<?=o5_e($photo['title'])?> — <?=o5_te('showroom photo')?> <?=$i + 1?>" loading="lazy">
 				<span class="show-num"><?=str_pad($i + 1, 2, '0', STR_PAD_LEFT)?></span>
-				<span class="show-cap"><b><?=o5_e($photo['title'])?></b><small><?=o5_te('Deir El Zahrani · click to enlarge')?></small><i class="show-zoom"><svg class="ic"><use href="#i-plus"/></svg></i></span>
+				<span class="show-cap"><b><?=o5_te($photo['title'])?></b><small><?=o5_te('Deir El Zahrani · click to enlarge')?></small><i class="show-zoom"><svg class="ic"><use href="#i-plus"/></svg></i></span>
 			</a>
 			<?php } ?>
 		</div>
@@ -624,7 +654,7 @@ if(!count($faq)) unset($nav['faq']);
 			</div>
 			<div class="fb-feed" id="fb-feed">
 				<!-- Facebook page plugin; the card under it stays until the plugin has loaded (ad blockers / plugin blank) -->
-				<iframe src="<?=o5_e($fb_plugin)?>" title="Facebook page" allow="encrypted-media" referrerpolicy="origin" onload="this.parentNode.classList.add('fb-live')"></iframe>
+				<iframe src="<?=o5_e($fb_plugin)?>" title="<?=o5_te('Facebook page')?>" allow="encrypted-media" referrerpolicy="origin" onload="this.parentNode.classList.add('fb-live')"></iframe>
 				<?php $this->load->view('include/_fb_card', array('fb_page' => $fb_page, 'photos' => $fb_photos, 'labels' => array('name' => $is_ar ? 'مؤسسة طرابلسي للتجارة والصناعة' : 'Traboulsi Est.', 'follow' => o5_t('Follow'), 'all' => o5_t('See all posts on Facebook'), 'aria' => o5_t('Latest posts of Traboulsi Est. on Facebook')))); ?>
 			</div>
 		</div>
@@ -642,16 +672,22 @@ if(!count($faq)) unset($nav['faq']);
 				<p class="eyebrow"><?=o5_te('FAQ')?></p>
 				<h2 class="h2"><?=o5_te('Frequently asked questions')?></h2>
 				<p class="lead"><?=o5_te('Answers to what our customers ask most. Anything else? Call us or send a message.')?></p>
-				<div class="cta-actions">
-					<a href="#contact" class="btn-more"><span><?=o5_te('Get in touch')?></span><svg class="ic"><use href="#i-plus"/></svg></a>
-					<?php if($call_num){ ?><a href="<?=o5_e($call_href)?>" class="btn-link"><svg class="ic"><use href="#i-phone"/></svg><span class="tel"><?=o5_e($call_num)?></span></a><?php } ?>
+				<div class="faq-help">
+					<span class="faq-help-mark" aria-hidden="true">?</span>
+					<p class="faq-help-title"><?=o5_te('Still have a question?')?></p>
+					<p class="faq-help-text"><?=o5_te('Talk to our team directly, we will be glad to help with your project.')?></p>
+					<div class="faq-help-actions">
+						<?php if($call_num){ ?><a href="<?=o5_e($call_href)?>" class="faq-help-btn"><svg class="ic"><use href="#i-phone"/></svg><span class="tel"><?=o5_e($call_num)?></span></a><?php } ?>
+						<?php if($contact['whatsapp']){ ?><a href="https://wa.me/<?=$contact['whatsapp']?>" target="_blank" rel="noopener" class="faq-help-btn is-wa"><svg class="ic"><use href="#i-whatsapp"/></svg><span><?=o5_te('WhatsApp')?></span></a><?php } ?>
+						<a href="#contact" class="faq-help-btn is-light"><svg class="ic"><use href="#i-mail"/></svg><span><?=o5_te('Send a message')?></span></a>
+					</div>
 				</div>
 			</div>
 			<div class="faq-list" data-reveal="right" style="--d:120ms">
 				<?php foreach($faq as $i => $qa){ ?>
-				<details class="faq-item"<?=$i == 0 ? ' open' : ''?>>
-					<summary><span><?=o5_e($qa[0])?></span><svg class="ic"><use href="#i-plus"/></svg></summary>
-					<p><?=o5_e($qa[1])?></p>
+				<details class="faq-item" name="faq"<?=$i == 0 ? ' open' : ''?>>
+					<summary><span class="faq-num"><?=sprintf('%02d', $i + 1)?></span><span class="faq-q"><?=o5_e($qa[0])?></span><span class="faq-toggle" aria-hidden="true"><svg class="ic"><use href="#i-plus"/></svg></span></summary>
+					<div class="faq-a"><p><?=o5_e($qa[1])?></p></div>
 				</details>
 				<?php } ?>
 			</div>
@@ -660,7 +696,7 @@ if(!count($faq)) unset($nav['faq']);
 </section>
 <?php } ?>
 
-<?php if(!$is_ar){ $this->load->view('include/_seo_section', array('wrap' => 'container')); } // Arabic services + FAQ for Google on the English page ?>
+<?php // the Arabic services and FAQ are on the Arabic page (yoursite/ar); the English page stays in English ?>
 
 <!-- ============ Contact ============ -->
 <section id="contact" class="contact">
@@ -730,12 +766,7 @@ if(!count($faq)) unset($nav['faq']);
 	<div class="container footer-grid">
 		<div class="footer-col footer-brand">
 			<img src="<?=$base?>images/logo.png" width="222" height="40" alt="<?=o5_e($company)?>" loading="lazy">
-			<?php if($is_ar){ ?>
-			<?=o5_tag('<p>', $hp['footer_text'], '</p>')?>
-			<?php }else{ ?>
-			<?=o5_tag('<p>', $hp['footer_text'], '</p>')?>
-			<?=o5_tag('<p class="ar" lang="ar" dir="rtl">', $hp['footer_text_ar'], '</p>')?>
-			<?php } ?>
+			<?=$is_ar ? o5_tag('<p>', $hp['footer_text_ar'], '</p>') : o5_tag('<p>', $hp['footer_text'], '</p>')?>
 		</div>
 		<div class="footer-col" data-collapse>
 			<button type="button" class="footer-title" aria-expanded="false"><?=o5_te('Company')?><svg class="ic plus"><use href="#i-plus"/></svg><svg class="ic minus"><use href="#i-minus"/></svg></button>
@@ -771,13 +802,13 @@ if(!count($faq)) unset($nav['faq']);
 		<div class="footer-col footer-follow">
 			<p class="footer-title"><?=o5_te('Follow us')?></p>
 			<div class="footer-social">
-				<?php if(!empty($contact_us['facebook'])){ ?><a href="<?=o5_e($contact_us['facebook'])?>" target="_blank" rel="noopener" aria-label="Facebook"><svg class="ic"><use href="#i-facebook"/></svg></a><?php } ?>
+				<?php if(!empty($contact_us['facebook'])){ ?><a href="<?=o5_e($contact_us['facebook'])?>" target="_blank" rel="noopener" aria-label="<?=o5_te('Facebook')?>"><svg class="ic"><use href="#i-facebook"/></svg></a><?php } ?>
 				<?php if(!empty($contact_us['instagram'])){ ?><a href="<?=o5_e($contact_us['instagram'])?>" target="_blank" rel="noopener" aria-label="Instagram"><svg class="ic"><use href="#i-instagram"/></svg></a><?php } ?>
-				<?php if($contact['whatsapp']){ ?><a href="https://wa.me/<?=$contact['whatsapp']?>" target="_blank" rel="noopener" aria-label="WhatsApp"><svg class="ic"><use href="#i-whatsapp"/></svg></a><?php } ?>
+				<?php if($contact['whatsapp']){ ?><a href="https://wa.me/<?=$contact['whatsapp']?>" target="_blank" rel="noopener" aria-label="<?=o5_te('WhatsApp')?>"><svg class="ic"><use href="#i-whatsapp"/></svg></a><?php } ?>
 			</div>
 		</div>
 	</div>
-	<div class="footer-giant" aria-hidden="true" data-reveal="up"><span class="giant-glow">TRABOULSIEST</span><span class="giant-text">TRABOULSIEST</span></div>
+	<div class="footer-giant" aria-hidden="true" data-reveal="up"><?php $giant = $is_ar ? 'طرابلسي' : 'TRABOULSIEST'; ?><span class="giant-glow"><?=$giant?></span><span class="giant-text"><?=$giant?></span></div>
 	<div class="copyright">
 		<p>&copy; <?=date('Y')?> <?=o5_te($hp['footer_copyright'])?><?php if($contact['phone']){ ?> &nbsp;|&nbsp; <?=o5_te('Tel:')?> <span class="tel"><?=o5_e($contact['phone'])?></span><?php } ?><?php if($contact['email']){ ?> &nbsp;|&nbsp; <?=o5_e($contact['email'])?><?php } ?></p>
 		<p><?=o5_te('Powered by')?> <a href="https://creativelebanon.com/" target="_blank" rel="noopener">CreativeLebanon</a></p>

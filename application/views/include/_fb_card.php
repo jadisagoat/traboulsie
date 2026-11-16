@@ -16,7 +16,7 @@ $page_path = trim((string)parse_url($fb_page, PHP_URL_PATH), '/');
 <a class="fb-card" href="<?=fbc_e($fb_page)?>" target="_blank" rel="noopener" aria-label="<?=fbc_e($labels['aria'])?>">
 	<span class="fb-cover"<?php if($cover){ ?> style="background-image:url('<?=fbc_e($base.$cover)?>')"<?php } ?>></span>
 	<span class="fb-head">
-		<span class="fb-logo"><img src="<?=$base?>images/logo.png" width="300" height="54" alt="Traboulsi Est. logo" loading="lazy"></span>
+		<span class="fb-logo"><img src="<?=$base?>images/logo.png" width="300" height="54" alt="<?=function_exists('o5_te') ? o5_te('Traboulsi Est. logo') : 'Traboulsi Est. logo'?>" loading="lazy"></span>
 		<span class="fb-name">
 			<strong><?=fbc_e($labels['name'])?></strong>
 			<small dir="ltr"><svg class="ic" aria-hidden="true"><use href="#i-facebook"/></svg> facebook.com/<?=fbc_e($page_path)?></small>

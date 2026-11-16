@@ -19,9 +19,6 @@
 |
 */
 $config['home_page_sections'] = array(
-	'Website design' => array(
-		'site_design' => array('Design of the home page', 'choice', 'Preview each design at any time: yoursite/option1, yoursite/option2, yoursite/option3 and yoursite/option4', array('' => 'Option 1 (light design)', '2' => 'Option 2 (industrial design)', '3' => 'Option 3 (motion design)', '4' => 'Option 4 (catalogue design)', '5' => 'Option 5 (bilingual design: English + Arabic page at yoursite/ar)')),
-	),
 	'Google (browser tab & search results)' => array(
 		'seo_title' => array('Page title', 'textarea'),
 		'seo_description' => array('Description', 'textarea', 'Shown under the title in Google and when the site is shared on Facebook / WhatsApp'),
@@ -30,7 +27,7 @@ $config['home_page_sections'] = array(
 		'google_verification' => array('Google Search Console code', 'text', 'The content of the verification meta tag given by search.google.com/search-console (HTML tag method). Leave empty if the site is verified another way'),
 	),
 	'Google: Arabic text on the page (SEO)' => array(
-		'seo_section_title' => array('Title of the Arabic block', 'ar', 'This block is shown before Contact in every design and is what Google reads for Arabic searches. Leave the fields empty to use the built-in texts'),
+		'seo_section_title' => array('Title of the Arabic block', 'ar', 'This block is shown before Contact on the English page and is what Google reads for Arabic searches. Leave the fields empty to use the built-in texts'),
 		'seo_text_ar' => array('Company description in Arabic', 'artext', 'A few paragraphs: what the company manufactures, imports and equips, and where. An empty line starts a new paragraph'),
 		'seo_services_ar' => array('What we equip (Arabic)', 'artext', 'One service per line'),
 		'seo_faq' => array('Frequently asked questions', 'artext', 'One question per line, the answer after a | sign: question | answer'),
@@ -97,7 +94,7 @@ $config['home_page_sections'] = array(
 		'contact_company' => array('Company name in the contact card', 'text', 'Also used as the company name for Google'),
 		'contact_form_title' => array('Title of the form', 'text'),
 	),
-	'Option 2, 3 & 4 designs only' => array(
+	'More texts of the home page' => array(
 		'services_eyebrow' => array('Services: small line above the title', 'text', 'The 4 numbered services are the 4 points of About. Leave these empty to use the default texts'),
 		'services_title' => array('Services: title', 'text'),
 		'services_text' => array('Services: text', 'textarea'),
