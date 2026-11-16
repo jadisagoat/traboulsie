@@ -622,7 +622,9 @@ if(!count($faq)) unset($nav['faq']);
 					<?php if($contact['whatsapp']){ ?><a href="https://wa.me/<?=$contact['whatsapp']?>" target="_blank" rel="noopener" class="btn-link btn-link-light"><svg class="ic"><use href="#i-whatsapp"/></svg><?=o5_te('WhatsApp')?></a><?php } ?>
 				</div>
 			</div>
-			<div class="fb-feed">
+			<div class="fb-feed" id="fb-feed">
+				<!-- Facebook page plugin; the card under it stays until the plugin has loaded (ad blockers / plugin blank) -->
+				<iframe src="<?=o5_e($fb_plugin)?>" title="Facebook page" allow="encrypted-media" referrerpolicy="origin" onload="this.parentNode.classList.add('fb-live')"></iframe>
 				<?php $this->load->view('include/_fb_card', array('fb_page' => $fb_page, 'photos' => $fb_photos, 'labels' => array('name' => $is_ar ? 'مؤسسة طرابلسي للتجارة والصناعة' : 'Traboulsi Est.', 'follow' => o5_t('Follow'), 'all' => o5_t('See all posts on Facebook'), 'aria' => o5_t('Latest posts of Traboulsi Est. on Facebook')))); ?>
 			</div>
 		</div>

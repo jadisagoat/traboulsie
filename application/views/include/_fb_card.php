@@ -1,6 +1,6 @@
 <?php
 /*
- * Facebook card shown instead of Facebook's page plugin (the plugin stays blank for this page).
+ * Facebook card shown under Facebook's page plugin until the plugin has loaded (or when it is blocked / blank).
  * It always shows: logo, page name, a grid of real photos, and a link to the Facebook page.
  * Expects: $fb_page (address), $photos (array of array('src' => path, 'title' => text)), $labels (array of texts).
  */

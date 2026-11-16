@@ -551,7 +551,9 @@ if(!count($videos) && !$fb_plugin) unset($nav['videos']);
 					<?php if($contact['whatsapp']){ ?><a href="https://wa.me/<?=$contact['whatsapp']?>" target="_blank" rel="noopener" class="btn-link btn-link-light"><svg class="ic"><use href="#i-whatsapp"/></svg>WhatsApp</a><?php } ?>
 				</div>
 			</div>
-			<div class="fb-feed">
+			<div class="fb-feed" id="fb-feed">
+				<!-- Facebook page plugin; the card under it stays until the plugin has loaded (ad blockers / plugin blank) -->
+				<iframe src="<?=o4_e($fb_plugin)?>" title="Facebook page" allow="encrypted-media" referrerpolicy="origin" onload="this.parentNode.classList.add('fb-live')"></iframe>
 				<?php $this->load->view('include/_fb_card', array('fb_page' => $fb_page, 'photos' => $fb_photos, 'labels' => array('name' => 'Traboulsi Est.', 'follow' => 'Follow', 'all' => 'See all posts on Facebook', 'aria' => 'Latest posts of Traboulsi Est. on Facebook'))); ?>
 			</div>
 		</div>
