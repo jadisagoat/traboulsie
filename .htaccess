@@ -14,11 +14,15 @@ Options -Indexes
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # HTTPS on every page. Turn on (remove the # of the 3 lines below) once the
-    # SSL certificate is active on the hosting, otherwise the site stops opening.
-    # RewriteCond %{HTTPS} off
-    # RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)
-    # RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+    # one address for Google: https and without www (the SSL certificate is active)
+    RewriteCond %{HTTP_HOST} !^(localhost|127\.0\.0\.1)
+    RewriteCond %{HTTPS} off
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+    RewriteCond %{HTTP_HOST} ^www\.(.+)$ [NC]
+    RewriteRule ^ https://%1%{REQUEST_URI} [R=301,L]
+
+    # sitemap.xml and robots.txt are built by the site (controllers/seo.php)
+    RewriteRule ^(sitemap\.xml|robots\.txt)$ index.php/$1 [L]
 
     # internal folders
     RewriteRule ^(docs|application|system)(/|$) - [F,L]

@@ -12,7 +12,7 @@
 |		'name' => array('Label', type, 'Hint (optional)'),
 |	)
 |
-| Types: text, textarea, ar (right-to-left), title (each line breaks on large
+| Types: text, textarea, ar (right-to-left), artext (right-to-left textarea), title (each line breaks on large
 | screens and [words] show in orange), choice (a list: the 4th item gives the
 | options as value => label).
 | A new field only needs a line here: it is saved on the next Save Changes.
@@ -20,13 +20,22 @@
 */
 $config['home_page_sections'] = array(
 	'Website design' => array(
-		'site_design' => array('Design of the home page', 'choice', 'Preview each design at any time: yoursite/option1, yoursite/option2, yoursite/option3 and yoursite/option4', array('' => 'Option 1 (light design)', '2' => 'Option 2 (industrial design)', '3' => 'Option 3 (motion design)', '4' => 'Option 4 (catalogue design)')),
+		'site_design' => array('Design of the home page', 'choice', 'Preview each design at any time: yoursite/option1, yoursite/option2, yoursite/option3 and yoursite/option4', array('' => 'Option 1 (light design)', '2' => 'Option 2 (industrial design)', '3' => 'Option 3 (motion design)', '4' => 'Option 4 (catalogue design)', '5' => 'Option 5 (bilingual design: English + Arabic page at yoursite/ar)')),
 	),
 	'Google (browser tab & search results)' => array(
 		'seo_title' => array('Page title', 'textarea'),
 		'seo_description' => array('Description', 'textarea', 'Shown under the title in Google and when the site is shared on Facebook / WhatsApp'),
 		'seo_keywords' => array('Keywords', 'textarea'),
 		'ga4_id' => array('Google Analytics 4 ID', 'text', 'The measurement ID from analytics.google.com, like G-XXXXXXXXXX. Leave empty to turn statistics off'),
+		'google_verification' => array('Google Search Console code', 'text', 'The content of the verification meta tag given by search.google.com/search-console (HTML tag method). Leave empty if the site is verified another way'),
+	),
+	'Google: Arabic text on the page (SEO)' => array(
+		'seo_section_title' => array('Title of the Arabic block', 'ar', 'This block is shown before Contact in every design and is what Google reads for Arabic searches. Leave the fields empty to use the built-in texts'),
+		'seo_text_ar' => array('Company description in Arabic', 'artext', 'A few paragraphs: what the company manufactures, imports and equips, and where. An empty line starts a new paragraph'),
+		'seo_services_ar' => array('What we equip (Arabic)', 'artext', 'One service per line'),
+		'seo_faq' => array('Frequently asked questions', 'artext', 'One question per line, the answer after a | sign: question | answer'),
+		'seo_services_en' => array('What we equip (English, option 5 design)', 'textarea', 'One service per line, shown in the Services section of the English page'),
+		'seo_faq_en' => array('Frequently asked questions (English, option 5 design)', 'textarea', 'One question per line, the answer after a | sign: question | answer'),
 	),
 	'Top bar' => array(
 		'topbar_name_ar' => array('Company name in Arabic', 'ar', 'The address, phones and Facebook / Instagram come from Contact Us'),
@@ -36,6 +45,7 @@ $config['home_page_sections'] = array(
 		'hero_title' => array('Title', 'title'),
 		'hero_text' => array('Text under the title', 'textarea'),
 		'hero_text_ar' => array('Arabic line', 'ar'),
+		'hero_title_ar' => array('Arabic title (option 5 design)', 'ar', 'Shown on the Arabic page instead of the English title. [words] show in red'),
 		'hero_button_1' => array('First button (opens the products)', 'text'),
 		'hero_button_2' => array('Second button (opens the contact form)', 'text'),
 	),

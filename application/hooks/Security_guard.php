@@ -20,11 +20,16 @@ class Security_guard {
 	// pre_controller: the sessions are kept in the ci_sessions table, create it on first run
 	function sessions_table()
 	{
+		// the flag only remembers that the table was once complete: it is still checked on every
+		// request (one light query) because a restored database may not contain the table any more
 		$flag = APPPATH.'cache/sessions_table.v2.ok';
-		if (is_file($flag)) return;
-
 		require_once(BASEPATH.'database/DB.php');
 		$db =& DB();
+		if (is_file($flag))
+		{
+			if ($db->table_exists('ci_sessions')) return;
+			@unlink($flag);
+		}
 		$db->query("CREATE TABLE IF NOT EXISTS `ci_sessions` (
 			`session_id` varchar(40) NOT NULL DEFAULT '0',
 			`ip_address` varchar(45) NOT NULL DEFAULT '0',
@@ -139,7 +144,7 @@ class Security_guard {
 				$add = '<input type="hidden" name="csrf_token" value="'.$token.'">';
 				if (stripos($m[0], 'main-contact-form') !== FALSE)
 				{
-					$add .= '<div style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden" aria-hidden="true"><label>Website<input type="text" name="website" value="" tabindex="-1" autocomplete="off"></label></div>';
+					$add .= '<div style="position:absolute;width:1px;height:1px;margin:-1px;padding:0;border:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap" aria-hidden="true"><label>Website<input type="text" name="website" value="" tabindex="-1" autocomplete="off"></label></div>';
 				}
 				return $m[0].$add;
 			}, $out);

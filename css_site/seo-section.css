@@ -1,0 +1,50 @@
+/* Arabic services + FAQ block (views/include/_seo_section.php), shared by the 4 designs.
+   Colours are inherited from the design, only the layout and the Arabic font are set here. */
+.seo-ar{padding:64px 0;border-top:1px solid rgba(128,128,128,.22);font-family:"IBM Plex Sans Arabic",system-ui,sans-serif;line-height:1.9;text-align:right}
+.seo-ar .seo-ar-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:48px;align-items:start}
+.seo-ar .seo-ar-h2{font-family:inherit;font-size:clamp(22px,2.6vw,32px);font-weight:600;line-height:1.5;margin:0 0 18px;letter-spacing:0;text-transform:none}
+.seo-ar .seo-ar-h3{font-family:inherit;font-size:19px;font-weight:600;margin:0 0 12px;letter-spacing:0;text-transform:none}
+.seo-ar p{margin:0 0 14px;font-size:16px;opacity:.9}
+.seo-ar .seo-ar-list{list-style:none;margin:0;padding:0}
+.seo-ar .seo-ar-list li{position:relative;padding:7px 22px 7px 0;font-size:15px;border-bottom:1px dashed rgba(128,128,128,.25)}
+.seo-ar .seo-ar-list li:before{content:"";position:absolute;right:0;top:17px;width:9px;height:9px;border-radius:50%;background:#e23b2e}
+.seo-ar .seo-ar-faq{margin-top:40px}
+.seo-ar .seo-ar-qa{border:1px solid rgba(128,128,128,.25);border-radius:10px;padding:0 18px;margin-bottom:10px}
+.seo-ar .seo-ar-qa summary{cursor:pointer;padding:14px 0;font-weight:600;font-size:16px;list-style:none}
+.seo-ar .seo-ar-qa summary::-webkit-details-marker{display:none}
+.seo-ar .seo-ar-qa summary:before{content:"+";display:inline-block;width:22px;color:#e23b2e;font-weight:700}
+.seo-ar .seo-ar-qa[open] summary:before{content:"\2212"}
+.seo-ar .seo-ar-qa p{padding:0 22px 14px 0;margin:0}
+@media (max-width:860px){.seo-ar{padding:44px 0}.seo-ar .seo-ar-grid{grid-template-columns:1fr;gap:28px}}
+
+/* role of a branch under its name in the contact section (all designs) */
+.branch-role{display:block;font-size:.86em;opacity:.7;margin-top:2px}
+
+/* Facebook card (views/include/_fb_card.php), shown in the Facebook box of designs 4 and 5 */
+.fb-feed.fb-feed:has(.fb-card){height:auto;width:100%;max-width:520px;overflow:hidden}
+.fb-card{display:flex;flex-direction:column;background:#fff;color:#1c1e21;text-decoration:none;border-radius:14px;overflow:hidden;font-family:inherit}
+.fb-card .fb-cover{display:block;height:150px;background:#1877f2 center/cover no-repeat;position:relative}
+.fb-card .fb-cover::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.35))}
+.fb-card .fb-head{display:flex;align-items:center;gap:14px;padding:0 20px;margin-top:-34px;position:relative}
+.fb-card .fb-logo{flex:0 0 auto;width:92px;height:68px;border-radius:12px;background:#fff;box-shadow:0 6px 20px -6px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;padding:8px}
+.fb-card .fb-logo img{width:100%;height:auto;display:block}
+.fb-card .fb-name{display:flex;flex-direction:column;min-width:0;padding-top:40px;flex:1}
+.fb-card .fb-name strong{font-size:17px;font-weight:700;line-height:1.3;color:#1c1e21}
+.fb-card .fb-name small{font-size:12.5px;color:#65676b;display:flex;align-items:center;gap:5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fb-card .fb-name small .ic{color:#1877f2;flex:0 0 auto}
+.fb-card .fb-follow{flex:0 0 auto;margin-top:40px;display:inline-flex;align-items:center;gap:6px;background:#1877f2;color:#fff;font-size:14px;font-weight:600;padding:8px 14px;border-radius:8px;transition:background .2s}
+.fb-card:hover .fb-follow{background:#0f63d6}
+.fb-card .fb-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:18px 20px 0}
+.fb-card .fb-photo{display:block;aspect-ratio:1;overflow:hidden;border-radius:6px;background:#f0f2f5}
+.fb-card .fb-photo img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .5s}
+.fb-card:hover .fb-photo img{transform:scale(1.06)}
+.fb-card .fb-foot{display:flex;align-items:center;justify-content:center;gap:8px;margin:18px 20px 20px;padding:12px;border-radius:8px;background:#e7f0fd;color:#1877f2;font-weight:600;font-size:14.5px}
+[dir="rtl"] .fb-card .fb-foot .ic{transform:scaleX(-1)}
+[dir="rtl"] .fb-card .fb-name small{justify-content:flex-end}
+@media (max-width:480px){
+	.fb-card .fb-cover{height:110px}
+	.fb-card .fb-head{flex-wrap:wrap;padding:0 14px}
+	.fb-card .fb-follow{margin-top:0;order:3;width:100%;justify-content:center}
+	.fb-card .fb-grid{padding:14px 14px 0}
+	.fb-card .fb-foot{margin:14px}
+}

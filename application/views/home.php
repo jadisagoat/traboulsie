@@ -11,7 +11,7 @@ if(!function_exists('tb_e')){
 	// hero title from the back office: [words] get the accent colour, each line breaks on large screens
 	function tb_hero_title($s){
 		$s = preg_replace('/\[(.+?)\]/s', '<span class="accent">$1</span>', tb_e(trim($s)));
-		return preg_replace('/\s*\R\s*/', ' <br class="br-lg">', $s);
+		return preg_replace('/\s*\R\s*/u', ' <br class="br-lg">', $s);
 	}
 	// a back office text inside its tag, or nothing when the text was left empty
 	function tb_tag($open, $text, $close){ return trim($text) === '' ? '' : $open.tb_e($text).$close; }
@@ -253,7 +253,7 @@ foreach(array('name', 'email', 'telephone', 'company', 'subject', 'message') as 
 				$cat = isset($cat_names[$product['id_category']]) ? $cat_names[$product['id_category']] : ''; ?>
 			<article class="product-card" data-cat="prod<?=$product['id_category']?>" data-name="<?=tb_e($product['title'])?>" data-search="<?=tb_e(strtolower($product['title'].' '.$cat))?>">
 				<a href="<?=base_url()?>uploads/products/600x455/<?=tb_e($product['image'])?>" class="product-media" aria-label="View <?=tb_e($product['title'])?>">
-					<img src="<?=base_url()?>uploads/products/290x220/<?=tb_e($product['image'])?>" width="290" height="220" loading="lazy" alt="<?=tb_e($product['title'])?> — Traboulsi Est.">
+					<img src="<?=base_url()?>uploads/products/290x220/<?=tb_e($product['image'])?>" width="290" height="220" loading="lazy" alt="<?=tb_e($product['alt'])?>">
 					<span class="product-zoom"><svg class="ic"><use href="#i-expand"/></svg></span>
 				</a>
 				<div class="product-body">
@@ -351,6 +351,8 @@ foreach(array('name', 'email', 'telephone', 'company', 'subject', 'message') as 
 	</div>
 </section>
 
+<?php $this->load->view('include/_seo_section', array('wrap' => 'container')); // Arabic services + FAQ (Google) ?>
+
 <section id="contact" class="section section-alt">
 	<div class="container">
 		<div class="section-head" data-reveal>
@@ -376,7 +378,7 @@ foreach(array('name', 'email', 'telephone', 'company', 'subject', 'message') as 
 					<?php foreach($locations as $location){ ?>
 					<li>
 						<span class="contact-icon"><svg class="ic"><use href="#i-pin"/></svg></span>
-						<div><span class="contact-label">Branch</span><span><?=tb_e($location)?></span></div>
+						<div><span class="contact-label">Branch</span><span><?=tb_e($location)?></span><?php $role = branch_role($location); if($role !== ''){ ?><span class="branch-role"><?=tb_e($role)?></span><?php } ?></div>
 					</li>
 					<?php } ?>
 				</ul>
@@ -461,7 +463,7 @@ foreach(array('name', 'email', 'telephone', 'company', 'subject', 'message') as 
 	<div class="container">
 		<div class="footer-bottom">
 			<p>&copy; <?=date('Y')?> <?=tb_e($hp['footer_copyright'])?>. All rights reserved.</p>
-			<p>Powered by <a href="http://creativelebanon.com/" target="_blank" rel="noopener">CreativeLebanon</a></p>
+			<p>Powered by <a href="https://creativelebanon.com/" target="_blank" rel="noopener">CreativeLebanon</a></p>
 		</div>
 	</div>
 </footer>

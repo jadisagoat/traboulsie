@@ -22,7 +22,7 @@ if(!function_exists('o4_e')){
 	// hero title: one line per line typed in the back office, each rising from behind a mask, [words] in red
 	function o4_lines($s){
 		$out = '';
-		foreach(preg_split('/\s*\R\s*/', trim($s)) as $i => $line){
+		foreach(preg_split('/\s*\R\s*/u', trim($s)) as $i => $line){
 			$line = preg_replace('/\[(.+?)\]/s', '<em>$1</em>', o4_e($line));
 			$out .= '<span class="line"><span style="--i:'.$i.'">'.$line.'</span></span> ';
 		}
@@ -30,7 +30,8 @@ if(!function_exists('o4_e')){
 	}
 	// the product description, or a short line about its category when it is empty
 	function o4_text($product, $cat_title, $texts){
-		$text = trim(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags((string)$product['description']), ENT_QUOTES, 'UTF-8')));
+		// English paragraph only: the Arabic paragraph is shown on its own line (o4_text_ar)
+		$text = isset($product['text_en']) ? $product['text_en'] : trim(preg_replace('/\s+/', ' ', html_entity_decode(strip_tags((string)$product['description']), ENT_QUOTES, 'UTF-8')));
 		if($text !== ''){
 			if(mb_strlen($text, 'UTF-8') > 260) $text = rtrim(mb_substr($text, 0, 250, 'UTF-8')).'…';
 			return $text;
@@ -119,6 +120,14 @@ if($fb_page !== '' && !preg_match('#^https?://(www\.|m\.|web\.)?facebook\.com/#i
 $fb_plugin = $fb_page === '' ? '' : 'https://www.facebook.com/plugins/page.php?href='.rawurlencode($fb_page).'&tabs=timeline&width=500&height=600&small_header=false&adapt_container_width=true&hide_cover=false&show_facepile=true';
 $videos = isset($videos) ? $videos : array();
 
+// photos of the Facebook card: showroom photos, then product photos
+$fb_photos = array_slice($showroom, 0, 3);
+foreach($products as $product){
+	if(count($fb_photos) >= 7) break;
+	$file = is_file('uploads/products/600x455/'.$product['image']) ? 'uploads/products/600x455/'.$product['image'] : 'uploads/products/290x220/'.$product['image'];
+	if($product['image'] !== '' && is_file($file)) $fb_photos[] = array('src' => $file, 'title' => isset($product['alt']) ? $product['alt'] : $product['title']);
+}
+
 // photo of the parallax band: the last banner (or the first showroom photo)
 $band_img = count($hero_images) ? $hero_images[count($hero_images) - 1]['src'] : (count($showroom) ? $showroom[0]['src'] : '');
 
@@ -162,7 +171,7 @@ if(!count($videos) && !$fb_plugin) unset($nav['videos']);
 <div class="loader" id="loader" aria-hidden="true">
 	<div class="loader-panel"></div>
 	<div class="loader-inner">
-		<img src="<?=$base?>images/logo.png" width="300" height="54" alt="">
+		<img src="<?=$base?>images/logo.png" width="300" height="54" alt="<?=o4_e(o4_or($hp['contact_company'], 'Traboulsi Est. for Trading & Industry'))?>">
 		<div class="loader-bar"><span id="loaderBar"></span></div>
 		<b class="loader-num" id="loaderNum">0</b>
 	</div>
@@ -342,12 +351,13 @@ if(!count($videos) && !$fb_plugin) unset($nav['videos']);
 				<a class="p-img<?=($size && $size[1] < 380) ? ' is-small' : ''?>" href="<?=$base.$big.o4_e($product['image'])?>" aria-label="View <?=o4_e($name)?>" data-cursor="View">
 					<span class="p-disc" aria-hidden="true"></span>
 					<?php if(preg_match('/(\d{2,4})\s*$/', $product['title'], $ref)){ ?><span class="p-ghost" aria-hidden="true"><?=$ref[1]?></span><?php } ?>
-					<img src="<?=$base.$big.o4_e($product['image'])?>" alt="<?=o4_e($name)?> — Traboulsi Est." loading="lazy" style="--max-h:<?=$max_h?>px"<?php if($size){ ?> width="<?=$size[0]?>" height="<?=$size[1]?>"<?php } ?>>
+					<img src="<?=$base.$big.o4_e($product['image'])?>" alt="<?=o4_e($product['alt'])?>" loading="lazy" style="--max-h:<?=$max_h?>px"<?php if($size){ ?> width="<?=$size[0]?>" height="<?=$size[1]?>"<?php } ?>>
 				</a>
 				<div class="p-text">
 					<span class="p-cat"><?=o4_e($cat)?></span>
 					<h3 class="p-name"><?=o4_e($name)?></h3>
 					<p class="p-desc"><?=o4_e(o4_text($product, $cat, $cat_texts))?></p>
+					<?php if(!empty($product['text_ar'])){ ?><p class="p-desc-ar" lang="ar" dir="rtl"><?=o4_e($product['text_ar'])?></p><?php } ?>
 					<div class="p-actions">
 						<button type="button" class="btn-more" data-more><span>More</span><svg class="ic"><use href="#i-plus"/></svg></button>
 						<button type="button" class="btn-link" data-ask>Ask for a quote<svg class="ic"><use href="#i-arrow"/></svg></button>
@@ -369,7 +379,7 @@ if(!count($videos) && !$fb_plugin) unset($nav['videos']);
 
 <!-- ============ Parallax band: years + call to action ============ -->
 <section class="band">
-	<?php if($band_img){ ?><div class="band-media" aria-hidden="true"><img src="<?=$base.o4_e($band_img)?>" alt="" loading="lazy" data-parallax></div><?php } ?>
+	<?php if($band_img){ ?><div class="band-media" aria-hidden="true"><img src="<?=$base.o4_e($band_img)?>" alt="<?=o4_e(o4_or($hp['contact_company'], 'Traboulsi Est.'))?> showroom" loading="lazy" data-parallax></div><?php } ?>
 	<div class="container band-inner">
 		<?php if($years){ ?>
 		<div class="band-years" data-reveal="left">
@@ -475,7 +485,7 @@ if(!count($videos) && !$fb_plugin) unset($nav['videos']);
 				<button type="button" class="arrow-btn" data-scroll="1" aria-label="Next photos"><svg class="ic"><use href="#i-right"/></svg></button>
 			</div>
 		</div>
-		<p class="lead"><?=o4_e(o4_or($hp['showroom_text'], 'Visit us in Deir El Zahrani: refrigerators, cooking lines and stainless-steel work, on display and ready to deliver.'))?></p>
+		<p class="lead"><?=o4_e(o4_or($hp['showroom_text'], 'Visit our factory in Deir El Zahrani or our branch in Khalde: refrigerators, cooking lines and stainless-steel work, on display and ready to deliver.'))?></p>
 		<div class="show-track" id="showTrack">
 			<?php foreach($showroom as $i => $photo){ ?>
 			<a href="<?=$base.o4_e($photo['src'])?>" class="show-item" data-gallery data-reveal="zoom" style="--d:<?=min($i, 3) * 120?>ms" aria-label="Open photo <?=$i + 1?>">
@@ -542,7 +552,7 @@ if(!count($videos) && !$fb_plugin) unset($nav['videos']);
 				</div>
 			</div>
 			<div class="fb-feed">
-				<iframe src="<?=o4_e($fb_plugin)?>" title="Latest posts of Traboulsi Est. on Facebook" loading="lazy" allow="encrypted-media; clipboard-write; web-share"></iframe>
+				<?php $this->load->view('include/_fb_card', array('fb_page' => $fb_page, 'photos' => $fb_photos, 'labels' => array('name' => 'Traboulsi Est.', 'follow' => 'Follow', 'all' => 'See all posts on Facebook', 'aria' => 'Latest posts of Traboulsi Est. on Facebook'))); ?>
 			</div>
 		</div>
 		<?php } ?>
@@ -551,6 +561,8 @@ if(!count($videos) && !$fb_plugin) unset($nav['videos']);
 <?php } ?>
 
 <!-- ============ Contact ============ -->
+<?php $this->load->view('include/_seo_section', array('wrap' => 'container')); // Arabic services + FAQ (Google) ?>
+
 <section id="contact" class="contact">
 	<div class="container">
 		<div class="section-head" data-reveal="up">
@@ -575,7 +587,7 @@ if(!count($videos) && !$fb_plugin) unset($nav['videos']);
 					<?php foreach($locations as $location){ ?>
 					<li>
 						<svg class="ic"><use href="#i-pin"/></svg>
-						<div><small>Branch</small><span><?=o4_e($location)?></span></div>
+						<div><small>Branch</small><span><?=o4_e($location)?></span><?php $role = branch_role($location); if($role !== ''){ ?><span class="branch-role"><?=o4_e($role)?></span><?php } ?></div>
 					</li>
 					<?php } ?>
 				</ul>
@@ -661,7 +673,7 @@ if(!count($videos) && !$fb_plugin) unset($nav['videos']);
 	<div class="footer-giant" aria-hidden="true" data-reveal="up"><span class="giant-glow">TRABOULSIEST</span><span class="giant-text">TRABOULSIEST</span></div>
 	<div class="copyright">
 		<p>&copy; <?=date('Y')?> <?=o4_e($hp['footer_copyright'])?><?php if($contact['phone']){ ?> &nbsp;|&nbsp; Tel: <span class="tel"><?=o4_e($contact['phone'])?></span><?php } ?><?php if($contact['email']){ ?> &nbsp;|&nbsp; <?=o4_e($contact['email'])?><?php } ?></p>
-		<p>Powered by <a href="http://creativelebanon.com/" target="_blank" rel="noopener">CreativeLebanon</a></p>
+		<p>Powered by <a href="https://creativelebanon.com/" target="_blank" rel="noopener">CreativeLebanon</a></p>
 	</div>
 </footer>
 

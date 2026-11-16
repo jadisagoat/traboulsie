@@ -5,7 +5,7 @@ class Home extends CI_Controller {
 public function index()
 {
 $data=$this->_page_data();
-$design=in_array($data['home_page']['site_design'],array('2','3','4')) ? (int)$data['home_page']['site_design'] : 1;
+$design=in_array($data['home_page']['site_design'],array('2','3','4','5')) ? (int)$data['home_page']['site_design'] : 1;
 $this->_render($data,$design,base_url());
 }
 
@@ -30,10 +30,24 @@ public function option4()
 $this->_render($this->_page_data(),4,base_url().'option4');
 }
 
-function _render($data,$design,$page_url)
+// the bilingual design: yoursite/option5 (English) and yoursite/option5/ar (Arabic)
+public function option5($lang='en')
+{
+$lang=$lang=='ar' ? 'ar' : 'en';
+$this->_render($this->_page_data(),5,base_url().($lang=='ar' ? 'ar' : 'option5'),$lang);
+}
+
+// the Arabic page of the website (design 5, whatever design is chosen for the English page)
+public function ar()
+{
+$this->_render($this->_page_data(),5,base_url().'ar','ar');
+}
+
+function _render($data,$design,$page_url,$lang='en')
 {
 $data['page_url']=$page_url;
-if($design>=2 && $design<=4){
+$data['lang']=$lang;
+if($design>=2 && $design<=5){
 	$data['content']='option'.$design.'/home';
 	$this->load->view('option'.$design.'/template',$data);
 }else{
@@ -69,7 +83,7 @@ $data['contact_us'] = $this->fct->getonerecord("contact_us",$condition1);
 
 /* data for the 2026 theme */
 $data['hero_images']=$this->_hero_images($data['banner']);
-$data['locations']=preg_split('/\s*\R\s*/',trim(isset($data['contact_us']['locations']) ? (string)$data['contact_us']['locations'] : ''),-1,PREG_SPLIT_NO_EMPTY);
+$data['locations']=preg_split('/\s*\R\s*/u',trim(isset($data['contact_us']['locations']) ? (string)$data['contact_us']['locations'] : ''),-1,PREG_SPLIT_NO_EMPTY);
 $data['contact_items']=$this->_parse_contact($data['contact_us']['description']);
 $data['contact']=array('phone'=>'','phone_href'=>'','mobile'=>'','mobile_href'=>'','email'=>'','whatsapp'=>'');
 foreach($data['contact_items'] as $item){
@@ -97,6 +111,12 @@ $data['cat_counts']=array();
 foreach($data['categories'] as $category){
 	$items=isset($by_cat[$category['id_category']]) ? $by_cat[$category['id_category']] : array();
 	$data['cat_counts'][$category['id_category']]=count($items);
+	foreach($items as $k=>$item){
+		$items[$k]['category']=trim(html_entity_decode(strip_tags($category['title']),ENT_QUOTES,'UTF-8'));
+		$items[$k]['alt']=$this->_product_alt($item,$items[$k]['category']);
+		$items[$k]['text_en']=$this->_desc_part($item['description'],'en');
+		$items[$k]['text_ar']=$this->_desc_part($item['description'],'ar');
+	}
 	$data['products']=array_merge($data['products'],$items);
 }
 
@@ -209,6 +229,25 @@ $this->email->send();
 return $data;
 }
 
+// the alt text Google reads on a product photo: "Showcase Fridge 108 - Refrigeration & Cold Display | Traboulsi Est. Lebanon"
+function _product_alt($product,$category)
+{
+$title=trim(html_entity_decode(strip_tags($product['title']),ENT_QUOTES,'UTF-8'));
+return $title.($category!='' ? ' - '.$category : '').' | Traboulsi Est. Lebanon';
+}
+
+// the English (first paragraph) or Arabic (lang="ar" paragraph) text of a product description
+function _desc_part($html,$lang)
+{
+$html=(string)$html;
+if($lang=='ar'){
+	if(!preg_match('#<p[^>]*lang="ar"[^>]*>(.*?)</p>#isu',$html,$m)) return '';
+}else{
+	if(!preg_match('#<p(?![^>]*lang="ar")[^>]*>(.*?)</p>#isu',$html,$m)) $m=array('',$html);
+}
+return trim(preg_replace('/\s+/u',' ',html_entity_decode(strip_tags($m[1]),ENT_QUOTES,'UTF-8')));
+}
+
 // banner images that exist on disk; falls back to any image in the banner folder
 function _hero_images($banners)
 {
@@ -276,5 +315,13 @@ return $groups;
 
 
 
+}
+
+// the role of a branch, shown under its name in the contact section of every design
+function branch_role($location)
+{
+	if(preg_match('/zahrani|الزهراني/iu', $location)) return 'Main factory and showroom';
+	if(preg_match('/khald|خلدة/iu', $location)) return 'Serving the greater Beirut region';
+	return '';
 }
 

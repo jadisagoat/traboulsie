@@ -36,7 +36,7 @@ if($field[1] == "title") $hint="Each line here is a separate line on the website
 <? } elseif($field[1] == "text" || $field[1] == "ar"){ ?>
 <input type="text" class="input-xxlarge" name="<?= $name; ?>" value="<?= $value; ?>"<?= $field[1] == "ar" ? ' dir="rtl"' : ''; ?> />
 <? } else { ?>
-<textarea class="input-xxlarge" rows="<?= $field[1] == "title" ? 3 : 4; ?>" name="<?= $name; ?>"><?= $value; ?></textarea>
+<textarea class="input-xxlarge" rows="<?= $field[1] == "title" ? 3 : ($field[1] == "artext" ? 8 : 4); ?>" name="<?= $name; ?>"<?= $field[1] == "artext" ? ' dir="rtl"' : ''; ?>><?= $value; ?></textarea>
 <? } ?>
 <? if($hint != ""){ ?><br /><span style="font-size:12px;color:#888"><?= $hint; ?></span><? } ?>
 </label>

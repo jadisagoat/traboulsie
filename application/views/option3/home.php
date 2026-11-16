@@ -11,7 +11,7 @@ if(!function_exists('o3_e')){
 	// hero title: one line per line typed in the back office, [words] in red italic
 	function o3_hero_title($s){
 		$out = '';
-		foreach(preg_split('/\s*\R\s*/', trim($s)) as $line){
+		foreach(preg_split('/\s*\R\s*/u', trim($s)) as $line){
 			$line = preg_replace('/\[(.+?)\]/s', '<em>$1</em>', o3_e($line));
 			$out .= '<span class="line"><span class="line-in" data-split>'.$line.'</span></span> ';
 		}
@@ -135,7 +135,7 @@ $base = base_url();
 <div class="loader" id="loader" aria-hidden="true">
 	<div class="loader-panels"><span></span><span></span><span></span><span></span><span></span></div>
 	<div class="loader-inner">
-		<img src="<?=$base?>images/logo.png" width="300" height="54" alt="">
+		<img src="<?=$base?>images/logo.png" width="300" height="54" alt="<?=o3_e(o3_or($hp['contact_company'], 'Traboulsi Est. for Trading & Industry'))?>">
 		<div class="loader-row">
 			<span class="loader-word"><?=o3_e(o3_or($hp['hero_eyebrow'], 'Traboulsi Est.'))?></span>
 			<span class="loader-num"><span id="loaderNum">0</span>%</span>
@@ -192,7 +192,7 @@ $base = base_url();
 	<div class="hero-frame" id="heroFrame">
 		<div class="hero-media" aria-hidden="true">
 			<?php foreach($hero_images as $i => $image){ ?>
-			<img class="hero-slide<?=$i == 0 ? ' is-active' : ''?>" src="<?=$base.o3_e($image['src'])?>" alt="" <?=$i == 0 ? 'fetchpriority="high"' : 'loading="lazy"'?>>
+			<img class="hero-slide<?=$i == 0 ? ' is-active' : ''?>" src="<?=$base.o3_e($image['src'])?>" alt="<?=o3_e(o3_or($image['title'], 'Traboulsi Est. showroom'))?>" <?=$i == 0 ? 'fetchpriority="high"' : 'loading="lazy"'?>>
 			<?php } ?>
 		</div>
 		<div class="hero-shade"></div>
@@ -322,7 +322,7 @@ $base = base_url();
 				<span class="hs-num" aria-hidden="true"><?=o3_pad($i + 1)?></span>
 				<div class="hs-stack" aria-hidden="true">
 					<?php foreach($thumbs as $t => $thumb){ ?>
-					<img src="<?=$base?>uploads/products/290x220/<?=o3_e($thumb['image'])?>" alt="" loading="lazy" style="--t:<?=$t?>">
+					<img src="<?=$base?>uploads/products/290x220/<?=o3_e($thumb['image'])?>" alt="<?=o3_e($thumb['alt'])?>" loading="lazy" style="--t:<?=$t?>">
 					<?php } ?>
 				</div>
 				<div class="hs-body">
@@ -399,7 +399,7 @@ $base = base_url();
 				list($p_name, $p_ref) = o3_model($product['title']); ?>
 			<article class="p-card" data-cat="prod<?=$product['id_category']?>" data-name="<?=o3_e($p_name.($p_ref ? ' '.$p_ref : ''))?>" data-search="<?=o3_e(strtolower($product['title'].' '.$cat))?>">
 				<a href="<?=$base?>uploads/products/600x455/<?=o3_e($product['image'])?>" class="p-media" data-cursor="View" aria-label="View <?=o3_e($product['title'])?>">
-					<img src="<?=$base?>uploads/products/290x220/<?=o3_e($product['image'])?>" width="290" height="220" loading="lazy" alt="<?=o3_e($p_name)?> — Traboulsi Est.">
+					<img src="<?=$base?>uploads/products/290x220/<?=o3_e($product['image'])?>" width="290" height="220" loading="lazy" alt="<?=o3_e($product['alt'])?>">
 					<?php if($p_ref){ ?><span class="p-ref">Ref. <?=o3_e($p_ref)?></span><?php } ?>
 				</a>
 				<div class="p-body">
@@ -501,7 +501,7 @@ $base = base_url();
 				<p class="eyebrow"><span class="eyebrow-num">06</span><?=o3_e(o3_or($hp['showroom_eyebrow'], 'Our showroom'))?></p>
 				<h2 class="h2" data-words><?=o3_e(o3_or($hp['showroom_title'], 'See the equipment before you buy'))?></h2>
 			</div>
-			<p class="lead"><?=o3_e(o3_or($hp['showroom_text'], 'Visit us in Deir El Zahrani: refrigerators, cooking lines and stainless-steel work, on display and ready to deliver.'))?></p>
+			<p class="lead"><?=o3_e(o3_or($hp['showroom_text'], 'Visit our factory in Deir El Zahrani or our branch in Khalde: refrigerators, cooking lines and stainless-steel work, on display and ready to deliver.'))?></p>
 		</div>
 	</div>
 	<div class="show-track" id="showTrack">
@@ -537,6 +537,8 @@ $base = base_url();
 </section>
 
 <!-- ============ Contact ============ -->
+<?php $this->load->view('include/_seo_section', array('wrap' => 'wrap')); // Arabic services + FAQ (Google) ?>
+
 <section id="contact" class="section contact">
 	<div class="wrap">
 		<div class="head">
@@ -563,7 +565,7 @@ $base = base_url();
 					<?php foreach($locations as $location){ ?>
 					<li>
 						<span class="info-icon"><svg class="ic"><use href="#i-pin"/></svg></span>
-						<div><small>Branch</small><span><?=o3_e($location)?></span></div>
+						<div><small>Branch</small><span><?=o3_e($location)?></span><?php $role = branch_role($location); if($role !== ''){ ?><span class="branch-role"><?=o3_e($role)?></span><?php } ?></div>
 					</li>
 					<?php } ?>
 				</ul>
@@ -659,7 +661,7 @@ $base = base_url();
 	<div class="wrap">
 		<div class="footer-bottom">
 			<p>&copy; <?=date('Y')?> <?=o3_e($hp['footer_copyright'])?>. All rights reserved.</p>
-			<p>Powered by <a href="http://creativelebanon.com/" target="_blank" rel="noopener">CreativeLebanon</a></p>
+			<p>Powered by <a href="https://creativelebanon.com/" target="_blank" rel="noopener">CreativeLebanon</a></p>
 		</div>
 	</div>
 </footer>
