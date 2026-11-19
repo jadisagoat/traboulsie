@@ -5,6 +5,10 @@
 // the bilingual design: the English page and the Arabic page (yoursite/ar) are both indexed,
 // each one pointing to the other (hreflang) in views/include/_seo.php
 $lang_urls = array('en' => base_url(), 'ar' => base_url().'ar');
+// the photo and video pages have their own two addresses
+if(isset($page) && in_array($page, array('photos', 'videos'))) $lang_urls = array('en' => base_url().$page, 'ar' => base_url().'ar/'.$page);
+// so do the sector, category, product, export and guide pages
+if(!empty($page_path)) $lang_urls = array('en' => base_url().$page_path, 'ar' => base_url().'ar/'.$page_path);
 $this->load->view('include/_seo', array('lang_urls' => $lang_urls, 'page_lang' => (isset($lang) && $lang == 'ar') ? 'ar' : 'en'));
 ?>
 <script>
@@ -25,7 +29,7 @@ $this->load->view('include/_seo', array('lang_urls' => $lang_urls, 'page_lang' =
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Mulish:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link href="<?=base_url()?>css_site/option5.css?v=<?=@filemtime('css_site/option5.css')?>" rel="stylesheet">
-<?php if(!empty($hero_images)){ ?>
+<?php if(!empty($hero_images) && isset($home_page['hero_style']) && $home_page['hero_style'] === 'photos' && (!isset($page) || $page === 'home')){ // the first photo of the banner, when the banner shows photos ?>
 <link rel="preload" as="image" href="<?=base_url().$hero_images[0]['src']?>">
 <?php } ?>
 <script src="<?=base_url()?>js_site/vendor/gsap.min.js" defer></script>

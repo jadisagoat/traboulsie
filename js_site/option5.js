@@ -68,7 +68,7 @@
 		var yearTo = loaderYear ? parseInt(loaderYear.getAttribute('data-to'), 10) : 0;
 		var started = Date.now();
 		var finished = false;
-		// the intro lasts at least 1.1 s and never more than 2.4 s (Facebook and the map can load slowly)
+		// the intro lasts at least 2.5 s (time to read what Traboulsi does) and never more than 3.3 s (Facebook and the map can load slowly)
 		var finish = function () {
 			if (finished) return;
 			finished = true;
@@ -78,18 +78,18 @@
 			loader.classList.add('is-done');
 			try { sessionStorage.setItem('o5-intro', '1'); } catch (err) {}
 			setTimeout(ready, 450);
-			setTimeout(function () { loader.style.display = 'none'; }, 1300);
+			setTimeout(function () { loader.style.display = 'none'; }, 1500);
 		};
-		var whenLoaded = function () { setTimeout(finish, Math.max(0, 1900 - (Date.now() - started))); };
+		var whenLoaded = function () { setTimeout(finish, Math.max(0, 2500 - (Date.now() - started))); };
 		if (doc.readyState === 'complete') whenLoaded(); else window.addEventListener('load', whenLoaded);
-		setTimeout(finish, 2800);
+		setTimeout(finish, 3300);
 		(function tick() {
 			if (finished) return;
-			var p = Math.min(0.96, (Date.now() - started) / 2400);
+			var p = Math.min(0.96, (Date.now() - started) / 2900);
 			loaderBar.style.transform = 'scaleX(' + p.toFixed(3) + ')';
 			loaderNum.textContent = Math.round(p * 100);
 			// the year counts from the founding year to today
-			if (loaderYear) loaderYear.textContent = Math.round(yearFrom + (yearTo - yearFrom) * Math.min(1, (Date.now() - started) / 1700));
+			if (loaderYear) loaderYear.textContent = Math.round(yearFrom + (yearTo - yearFrom) * Math.min(1, (Date.now() - started) / 2000));
 			requestAnimationFrame(tick);
 		})();
 	} else heroWhenLoaded();
@@ -139,14 +139,24 @@
 			if (box.bottom > 0 && box.top < h * 0.92 && (box.width || box.height)) pending[i].classList.add('is-in');
 		}
 	}
-	if (motion && hasIO) {
-		revealer = new IntersectionObserver(function (entries) {
+	// Two-way reveal: an element opens when it comes into view and closes again once it has left, so its animation
+	// plays every time, scrolling down and scrolling up. "is-above" = it left through the top of the window, so it
+	// comes back in from above (the stylesheet mirrors the movement). It opens at "ratio" visible and only closes
+	// when nothing of it is left, so it never flickers on the edge.
+	function twoWay(ratio) {
+		return function (entries) {
 			entries.forEach(function (entry) {
-				if (!entry.isIntersecting) return;
-				entry.target.classList.add('is-in');
-				revealer.unobserve(entry.target);
+				var el = entry.target;
+				if (entry.isIntersecting && entry.intersectionRatio >= ratio) el.classList.add('is-in');
+				else if (!entry.isIntersecting) {
+					el.classList.toggle('is-above', entry.boundingClientRect.top < 0);
+					el.classList.remove('is-in');
+				}
 			});
-		}, { rootMargin: '0px 0px -10% 0px', threshold: 0.05 });
+		};
+	}
+	if (motion && hasIO) {
+		revealer = new IntersectionObserver(twoWay(0.05), { rootMargin: '0px 0px -10% 0px', threshold: [0, 0.05] });
 		$$('[data-reveal], [data-feature]').forEach(function (el) { revealer.observe(el); });
 	} else {
 		$$('[data-reveal], [data-feature]').forEach(function (el) { el.classList.add('is-in'); });
@@ -155,6 +165,8 @@
 		if (revealer) revealer.observe(el);
 		else el.classList.add('is-in');
 	}
+	// product rows open once a good part of the row is on screen, so their opening animation is seen from its start
+	var rowRevealer = !(motion && hasIO) ? null : new IntersectionObserver(twoWay(0.3), { threshold: [0, 0.3] });
 
 	/* ---------- Counters count up when they come into view ---------- */
 	function countUp(el) {
@@ -344,8 +356,8 @@
 				if (!wasIn) {
 					row.classList.remove('is-in');
 					row.style.setProperty('--g', ((i - before) % cols) * 90 + 'ms');
-					if (revealer) revealer.unobserve(row);
-					reveal(row);
+					if (rowRevealer) { rowRevealer.unobserve(row); rowRevealer.observe(row); }
+					else row.classList.add('is-in');
 				}
 			});
 			var shown = Math.min(limit, matches.length);
@@ -404,6 +416,9 @@
 			if (!link) return;
 			if (search) { search.value = ''; query = ''; }
 			setFilter(link.getAttribute('data-filter-link'));
+			// the Products menu links to the category pages (for Google and for the other pages); on the home page it filters the list instead
+			var inPage = link.getAttribute('data-href');
+			if (inPage && scrollToId(inPage.slice(1))) { e.preventDefault(); setMenu(false); link.blur(); }
 		}, true);
 
 		// the search icon in the header jumps to the product search
@@ -423,10 +438,7 @@
 				askAbout($('.p-name', row).textContent);
 				return;
 			}
-			if (e.target.closest('[data-more]') || e.target.closest('.p-img')) {
-				e.preventDefault();
-				lbOpen(productItems(), matches.indexOf(row), false);
-			}
+			// the photo and "More" are links to the page of the product
 		});
 
 		try {
@@ -475,6 +487,137 @@
 		});
 	});
 
+	/* ---------- Banner stage: videos and photos in a fan that turns by itself ----------
+	   The card in front plays (the others wait), a bar on it shows the time left, the glow behind the banner follows it.
+	   A click on a side card brings it to the front; the arrows, a swipe and the keyboard do the same. */
+	var stage = $('#heroStage');
+	if (stage) {
+		var stageCards = $$('.stage-card', stage);
+		var stageGlows = $$('.stage-ambient span');
+		var stageNow = $('#stageNow');
+		var stageN = stageCards.length;
+		var stageHalf = Math.floor(stageN / 2);
+		var stageActive = stageHalf;
+		var stageTimer = null;
+		var stageSeen = true;
+		var stageHeld = false;
+		var STAGE_TIME = 5200;
+		stage.style.setProperty('--stage-time', STAGE_TIME + 'ms');
+
+		var stagePlace = function () {
+			stageCards.forEach(function (card, i) {
+				var p = ((i - stageActive + stageN + stageHalf) % stageN) - stageHalf;
+				var on = p === 0;
+				card.style.setProperty('--p', p);
+				card.style.setProperty('--ap', Math.abs(p));
+				card.style.zIndex = 10 - Math.abs(p);
+				// taking the class off and on again restarts the bar
+				card.classList.remove('is-active');
+				if (on) { void card.offsetWidth; card.classList.add('is-active'); }
+				var video = $('video', card);
+				if (!video) return;
+				if (on && stageSeen && !reduceMotion) {
+					if (!video.getAttribute('src')) { video.src = video.getAttribute('data-src'); video.preload = 'auto'; }
+					var playing = video.play();
+					if (playing && playing.catch) playing.catch(function () {});
+				} else video.pause();
+			});
+			// the same video plays large and softened behind the banner
+			stageGlows.forEach(function (glow, i) {
+				var on = i === stageActive;
+				glow.classList.toggle('is-active', on);
+				var back = $('video', glow);
+				if (!back) return;
+				if (on && stageSeen && !reduceMotion && window.innerWidth > 760) {
+					if (!back.getAttribute('src')) { back.src = back.getAttribute('data-src'); back.preload = 'auto'; }
+					var front = $('video', stageCards[i]);
+					if (front && front.currentTime) { try { back.currentTime = front.currentTime; } catch (err) {} }
+					var backPlaying = back.play();
+					if (backPlaying && backPlaying.catch) backPlaying.catch(function () {});
+				} else back.pause();
+			});
+			if (stageNow) stageNow.textContent = (stageActive < 9 ? '0' : '') + (stageActive + 1);
+		};
+		var stageRun = function () {
+			clearInterval(stageTimer);
+			stage.classList.toggle('is-paused', stageHeld || !stageSeen || reduceMotion);
+			if (!stageHeld && stageSeen && !reduceMotion) stageTimer = setInterval(function () { stageGo(stageActive + 1); }, STAGE_TIME);
+		};
+		var stageGo = function (i) {
+			stageActive = (i + stageN) % stageN;
+			stagePlace();
+			stageRun();
+		};
+
+		stageCards.forEach(function (card, i) {
+			card.addEventListener('click', function (e) {
+				if (i === stageActive) return; // the card in front opens its link
+				e.preventDefault();
+				e.stopPropagation(); // not a jump to the videos: only the card in front follows its link
+				stageGo(i);
+			});
+		});
+		$$('[data-stage]', stage).forEach(function (btn) {
+			btn.addEventListener('click', function () { stageGo(stageActive + (btn.getAttribute('data-stage') === '1' ? 1 : -1)); });
+		});
+		stage.addEventListener('keydown', function (e) {
+			if (e.key === 'ArrowLeft') stageGo(stageActive - 1);
+			else if (e.key === 'ArrowRight') stageGo(stageActive + 1);
+		});
+		stage.addEventListener('mouseenter', function () { stageHeld = true; stageRun(); });
+		stage.addEventListener('mouseleave', function () { stageHeld = false; stagePlace(); stageRun(); });
+		var stageX = null;
+		stage.addEventListener('touchstart', function (e) { stageX = e.touches[0].clientX; }, { passive: true });
+		stage.addEventListener('touchend', function (e) {
+			if (stageX === null) return;
+			var dx = e.changedTouches[0].clientX - stageX;
+			if (Math.abs(dx) > 40) stageGo(stageActive + (dx < 0 ? 1 : -1));
+			stageX = null;
+		});
+
+		// it starts once the page has loaded and only runs while it is on screen
+		var stageStart = function () { stage.classList.add('is-in'); stagePlace(); stageRun(); };
+		if (doc.readyState === 'complete') setTimeout(stageStart, 500); else window.addEventListener('load', function () { setTimeout(stageStart, 500); });
+		if ('IntersectionObserver' in window) {
+			new IntersectionObserver(function (entries) {
+				stageSeen = entries[0].isIntersecting;
+				if (!stage.classList.contains('is-in')) return;
+				stagePlace();
+				stageRun();
+			}, { threshold: 0.15 }).observe(stage);
+		}
+		doc.addEventListener('visibilitychange', function () {
+			if (!stage.classList.contains('is-in')) return;
+			stageSeen = !doc.hidden;
+			stagePlace();
+			stageRun();
+		});
+	}
+
+	/* ---------- Completed projects: filter by sector ---------- */
+	$$('[data-proj-filter]').forEach(function (btn, _, all) {
+		btn.addEventListener('click', function () {
+			var key = btn.getAttribute('data-proj-filter');
+			all.forEach(function (b) { var on = b === btn; b.classList.toggle('is-active', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+			$$('.proj-card').forEach(function (card) {
+				card.classList.toggle('is-hidden', key !== 'all' && card.getAttribute('data-sector') !== key);
+			});
+			if (window.ScrollTrigger) ScrollTrigger.refresh();
+		});
+	});
+
+	/* ---------- Photo page: showroom / projects / products ---------- */
+	$$('[data-g-filter]').forEach(function (btn, _, all) {
+		btn.addEventListener('click', function () {
+			var key = btn.getAttribute('data-g-filter');
+			all.forEach(function (b) { var on = b === btn; b.classList.toggle('is-active', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+			$$('.g-item').forEach(function (item) {
+				item.classList.toggle('is-hidden', key !== 'all' && item.getAttribute('data-group') !== key);
+			});
+			if (window.ScrollTrigger) ScrollTrigger.refresh();
+		});
+	});
+
 	/* ---------- Lightbox (products and showroom photos) ---------- */
 	var lb = $('#lightbox');
 	var lbImg = $('#lbImg');
@@ -498,6 +641,8 @@
 		lbTitle.textContent = item.title;
 		lbCat.textContent = item.cat;
 		lbDesc.textContent = item.text || '';
+		var askLabel = lbAsk.getAttribute(item.project ? 'data-label-project' : 'data-label-product');
+		if (askLabel) $('span', lbAsk).textContent = askLabel;
 		lbCount.textContent = (lbIndex + 1) + ' / ' + items.length;
 		var many = items.length > 1;
 		$('.lb-prev', lb).hidden = !many;
@@ -523,12 +668,26 @@
 
 	if (lb) {
 		var photos = $$('[data-gallery]');
-		photos.forEach(function (link, i) {
+		photos.forEach(function (link) {
 			link.addEventListener('click', function (e) {
 				e.preventDefault();
-				lbOpen(photos.map(function (p) {
-					return { src: p.getAttribute('href'), title: $('img', p).getAttribute('alt'), cat: 'Showroom' };
-				}), i, true);
+				// the arrows of the viewer only go through the photos left by the filter of the photo page
+				var shown = photos.filter(function (p) { return !p.classList.contains('is-hidden'); });
+				lbOpen(shown.map(function (p) {
+					return { src: p.getAttribute('href'), title: $('img', p).getAttribute('alt'), cat: p.getAttribute('data-cat') || 'Showroom' };
+				}), shown.indexOf(link), true);
+			});
+		});
+
+		// completed projects: every photo of the project, with its title, sector and text
+		$$('[data-project]').forEach(function (card) {
+			card.addEventListener('click', function (e) {
+				e.preventDefault();
+				var list = [];
+				try { list = JSON.parse(card.getAttribute('data-photos')) || []; } catch (err) { list = [card.getAttribute('href')]; }
+				lbOpen(list.map(function (src) {
+					return { src: src, title: card.getAttribute('data-title'), cat: card.getAttribute('data-cat'), text: card.getAttribute('data-text'), project: true };
+				}), 0, false);
 			});
 		});
 
@@ -690,6 +849,19 @@
 			gsap.fromTo(el, { y: 110 }, { y: -110, ease: 'none', scrollTrigger: { trigger: el.closest('.p-row'), start: 'top bottom', end: 'bottom top', scrub: true } });
 		});
 
+		// client names: the same calm speed whatever the length of the list and the screen (pixels per second)
+		var MARQUEE_SPEED = 70;
+		var setMarquee = function () {
+			$$('.marquee-track').forEach(function (t) {
+				var half = t.scrollWidth / 2;
+				if (half > 0) t.style.animationDuration = Math.max(30, Math.round(half / MARQUEE_SPEED)) + 's';
+			});
+		};
+		setMarquee();
+		window.addEventListener('load', setMarquee);
+		var marqueeTimer;
+		window.addEventListener('resize', function () { clearTimeout(marqueeTimer); marqueeTimer = setTimeout(setMarquee, 300); });
+
 		// client names lean with the speed of the scroll
 		var skew = $('#marqueeSkew');
 		if (skew) {
@@ -750,6 +922,38 @@
 		if (aBody) {
 			var lines = Array.prototype.filter.call(aBody.children, function (el) { return el.getAttribute('data-reveal') !== 'split'; });
 			atl.fromTo(lines, { y: 36, opacity: 0 }, { y: 0, opacity: 1, duration: 0.9, stagger: 0.12, ease: 'power3.out' }, 0.15);
+		}
+		// always alive after the entrance: a ring of light turns behind the photo, the badge floats with a shine,
+		// the building photo sways, and the photo tilts toward the mouse
+		if (motion && aFig) {
+			var ring = doc.createElement('span'); ring.className = 'about-ring'; ring.setAttribute('aria-hidden', 'true');
+			var glow = doc.createElement('span'); glow.className = 'about-glow'; glow.setAttribute('aria-hidden', 'true');
+			aFig.appendChild(ring); aFig.appendChild(glow);
+			atl.fromTo(ring, { scale: 0.4, opacity: 0, rotate: -120 }, { scale: 1, opacity: 1, rotate: 0, duration: 1.6, ease: 'expo.out' }, 0.4)
+				.fromTo(glow, { scale: 0.3, opacity: 0 }, { scale: 1, opacity: 1, duration: 1.8, ease: 'power2.out' }, 0.5);
+			gsap.to(ring, { rotate: '+=360', duration: 48, ease: 'none', repeat: -1, delay: 2 });
+			gsap.to(glow, { scale: 1.15, opacity: 0.7, duration: 3.2, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 2.3 });
+			if (aBadge) {
+				var shine = doc.createElement('span'); shine.className = 'badge-shine'; shine.setAttribute('aria-hidden', 'true');
+				aBadge.appendChild(shine);
+				gsap.to(aBadge, { y: -10, duration: 2.4, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 2.6 });
+				gsap.fromTo(shine, { x: '-160%' }, { x: '360%', duration: 1.3, ease: 'power2.inOut', repeat: -1, repeatDelay: 3.2, delay: 2.8 });
+			}
+			if (aSub) gsap.to(aSub, { rotate: -2, duration: 3.6, ease: 'sine.inOut', yoyo: true, repeat: -1, delay: 2.2 });
+			if (aPhoto && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+				var tiltX = gsap.quickTo(aPhoto, 'rotationX', { duration: 0.8, ease: 'power3' });
+				var tiltY = gsap.quickTo(aPhoto, 'rotationY', { duration: 0.8, ease: 'power3' });
+				var ringX = gsap.quickTo(ring, 'x', { duration: 1.2, ease: 'power3' });
+				var ringY = gsap.quickTo(ring, 'y', { duration: 1.2, ease: 'power3' });
+				aFig.addEventListener('mousemove', function (e) {
+					var r = aFig.getBoundingClientRect();
+					var px = (e.clientX - r.left) / r.width - 0.5, py = (e.clientY - r.top) / r.height - 0.5;
+					tiltY(px * 9); tiltX(-py * 7); ringX(-px * 30); ringY(-py * 30);
+					aPhoto.style.setProperty('--gx', ((px + 0.5) * 100).toFixed(1) + '%');
+					aPhoto.style.setProperty('--gy', ((py + 0.5) * 100).toFixed(1) + '%');
+				});
+				aFig.addEventListener('mouseleave', function () { tiltX(0); tiltY(0); ringX(0); ringY(0); });
+			}
 		}
 		// the photos drift at different speeds while the page scrolls past (depth)
 		if (aImg) gsap.fromTo(aImg, { yPercent: -5 }, { yPercent: 5, ease: 'none', scrollTrigger: { trigger: aboutSec, start: 'top bottom', end: 'bottom top', scrub: true } });

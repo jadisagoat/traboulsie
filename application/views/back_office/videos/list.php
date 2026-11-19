@@ -57,7 +57,7 @@ On Facebook, open the video, click <b>…</b> or <b>Share</b> &rarr; <b>Copy lin
 	$embed = $this->fct->video_embed($val["video_url"]); ?>
 <tr id="<?= (int)$val["id_videos"]; ?>">
 <td class="col-chk"><input type="checkbox" name="cehcklist[]" value="<?= (int)$val["id_videos"]; ?>" /></td>
-<td><?= $e($val["title"]); ?></td>
+<td><?= $e($val["title"]); ?><?php if(!empty($val["title_ar"])){ ?><br /><span dir="rtl"><?= $e($val["title_ar"]); ?></span><?php } ?></td>
 <td><a href="<?= $e($val["video_url"]); ?>" target="_blank" rel="noopener" class="blue">open video</a><?php if(!$embed){ ?> <small class="text-error">(this link can't be played on the site)</small><?php } ?></td>
 <td><?= $embed ? bo_t(ucfirst($embed["source"]).($embed["vertical"] ? " reel" : "")) : "-"; ?></td>
 <td style="text-align:right">

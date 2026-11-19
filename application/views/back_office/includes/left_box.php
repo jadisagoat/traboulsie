@@ -26,6 +26,7 @@ $icons = array(
     "our clients" => "bx-group",
     "products"    => "bx-package",
     "videos"      => "bx-video",
+    "projects"    => "bx-briefcase-alt-2",
 );
 ?>
 <aside id="layout-menu" class="layout-menu menu-vertical menu bg-menu-theme">

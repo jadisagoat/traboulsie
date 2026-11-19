@@ -56,51 +56,9 @@ if($query->num_rows() > 0 ){
 return $query->result_array();
 } else { return array(); }
 }
-function getAllHere($table,$order){
-$this->db->where('deleted',0);
-$this->db->where('id_locations',$this->session->userdata('country'));
-if ($this->db->field_exists($order, $table)){
-$this->db->order_by($order); }
-$query=$this->db->get($table);
-if($query->num_rows() > 0 ){
-return $query->result_array();
-} else { return array(); }
-}
-function getAllHere1($table,$order){
-$this->db->where('deleted',0);
-$this->db->where('active',1);
-$this->db->where('id_locations',$this->session->userdata('country'));
-if ($this->db->field_exists($order, $table)){
-$this->db->order_by($order); }
-$query=$this->db->get($table);
-if($query->num_rows() > 0 ){
-return $query->result_array();
-} else { return array(); }
-}
 
 function getAll_orderdate($table){
 $this->db->where('deleted',0); 
-$this->db->order_by('created_date','DESC');
-$query=$this->db->get($table);
-if($query->num_rows() > 0 ){
-return $query->result_array();
-} else { return array(); }
-}
-
-function getAll_orderdate1($table){
-$this->db->where('deleted',0); 
-$this->db->where('active',1);
-$this->db->where('id_locations',$this->session->userdata('country'));
-$this->db->order_by('created_date','DESC');
-$query=$this->db->get($table);
-if($query->num_rows() > 0 ){
-return $query->result_array();
-} else { return array(); }
-}
-
-function getAll_orderdate2($table){
-$this->db->where('deleted',0); 
-$this->db->where('id_locations',$this->session->userdata('country'));
 $this->db->order_by('created_date','DESC');
 $query=$this->db->get($table);
 if($query->num_rows() > 0 ){
@@ -130,17 +88,6 @@ return $query->result_array();
 } else { return array(); }
 }
 
-function getAll_limit_cond($table,$order,$des,$limit,$cond){
-$this->db->where('deleted',0);
-$this->db->where($cond);
-if ($this->db->field_exists($order, $table)){
-$this->db->order_by($order,$des); }
-$query=$this->db->get($table,$limit);
-if($query->num_rows() > 0 ){
-return $query->result_array();
-} else { return array(); }
-}
-
 
 function getAll_001($table,$order){
 if ($this->db->field_exists($order, $table)){
@@ -149,46 +96,6 @@ $query=$this->db->get($table);
 if($query->num_rows() > 0 ){
 return $query->result_array();
 } else { return array(); }
-}
-
-function getAll_desc($table,$order,$cond){
-$this->db->where('deleted',0);
-$this->db->where($cond);
-if ($this->db->field_exists($order, $table)){
-$this->db->order_by($order,'desc'); }
-$query=$this->db->get($table);
-if($query->num_rows() > 0 ){
-return $query->result_array();
-} else { return array(); }
-}
-
-function getto_do_list(){
-$yesterday = date("Y-m-d", time()-86400);
-$q="SELECT * FROM `do_it` WHERE Deadline > '".$yesterday."' AND deleted = 0 ORDER BY  Deadline LIMIT 4";
-$query=$this->db->query($q);
-return $query->result_array();
-}
-function getto_do_list_completed(){
-$yesterday = date("Y-m-d", time()-86400);
-$q="SELECT * FROM `do_it` WHERE  deleted = 0  AND completed = 1 ORDER BY  Deadline LIMIT 4";
-$query=$this->db->query($q);
-return $query->result_array();
-}
-
-function module($id){
-$this->db->where('id_module',$id);
-$query=$this->db->get('module');
-$res = $query->row_array();	
-return $res["activate"];
-}
-
-
-function get_unreaded_emails(){
-	$this->db->where('deleted',0); 
-	$this->db->where('readed',0);
-	$this->db->order_by('created_date','DESC');
-	$query=$this->db->get('contactform');
-	return $query->result_array();
 }
 
 // Delete Directory and all related
@@ -278,26 +185,6 @@ $date ="";
 return $date;	
 }
 
-public function date_in_formate1($date){
-if($date !=""){
-list($d,$m,$y)=explode('/',$date);
-$date=$y."-".$m."-".$d;
-} else {
-$date = "0000-00-00";
-}
-return $date;	
-}
-
-public function date_out_formate1($date){
-if(!empty($date) && $date !="0000-00-00" ){
-list($y,$m,$d)=explode('-',$date);
-$date=$d."/".$m."/".$y;
-} else {
-$date ="";	
-}
-return $date;	
-}
-
 // Delete Related images when delete any items from the recycle Bin .
 public function deleter_related_images($content_type,$id){
 $tables=preg_replace('/[^a-z0-9_]/i','',str_replace(" ","_",$content_type));
@@ -323,327 +210,6 @@ unlink("./uploads/".$tables."/".$value."/".$row[$vv["name"]]); }
 }
 
 
-
-
-public function outputKey()  
-{  
-$ip = $_SERVER['REMOTE_ADDR'];
-$uniqid = uniqid(mt_rand(), true); 
-$formKey = md5($ip . $uniqid);
-$this->session->set_userdata('formKey',$formKey);
-echo  "<input type='hidden' name='form_key' id='form_key' value='".$formKey."' />";  
-}  
-
-public function check_token(){
-$token = $this->session->userdata('formKey');
-if($this->input->post('form_key') == $token){
-$res = true;	
-}
-else { 
-$res =  false;
-}
-$this->session->unset_userdata('formKey');
-return $res;
-}
-
-function getcountry($id_locations){
-$this->db->select('locations.*, countries.*');
-$this->db->from('locations');
-$this->db->join('countries','countries.id_countries = locations.id_countries');
-$this->db->where('locations.id_locations' , $id_locations);
-$this->db->where('locations.deleted' , 0);
-$query=$this->db->get();
-$res = $query->result_array();
-return $res;
-}
-
-
-function getmaxsort($table,$array){
-$this->db->select_max('sort_order');
-$this->db->where_in('id_'.$table,$array);
-$query=$this->db->get($table);
-$res = $query->row_array();
-return $res["sort_order"];
-}
-
-function get_first_row($table,$where=array()){
-if(count($where) > 0)
-$query = $this->db->get_where($table,$where);		
-else
-$query = $this->db->get($table);
-if($query->num_rows() > 0)
-{
-	return $query->first_row();
-} else { return array(); }	
-}
-
-function get_last_row($table,$where=array()){
-if(count($where) > 0)
-$query = $this->db->get_where($table,$where);		
-else
-$query = $this->db->get($table);
-if($query->num_rows() > 0)
-{
-	return $query->last_row();
-} else { return array(); }	
-}
-
-function union_tables($tabel1 , $table2){
-$this->db->select('title, description, created_date');
-$this->db->from($tabel1);
-$subQuery1 = $this->db->_compile_select();
-$this->db->_reset_select();	
-$this->db->select('title, destination AS description, created_date');
-$this->db->from($table2);
-$subQuery2 = $this->db->_compile_select();
-$this->db->_reset_select();
-$query = $this->db->query($subQuery1." UNION ".$subQuery2);
-return $query->result_array();
-}
-
-function another_way_for_union(){
-$this->db->select('title, content, date');
-$this->db->from('mytable1');
-$query1 = $this->db->get()->result();
-
-$this->db->select('title, content, date');
-$this->db->from('mytable2');
-$query2 = $this->db->get()->result();
-// Merge both query results
-$query = array_merge($query1, $query2);
-}
-
-
-function if_existings($table, $cond){
-$this->db->where($cond);
-$query = $this->db->get($table);
-return ($query->num_rows() > 0)? true : false;
-}
-
-
-function soso(){
-//$fields = $this->db->list_fields('maintenance');
-$query = $this->db->query('SELECT deleted FROM maintenance'); 
-$fields = $query->list_fields();
-foreach ($fields as $field)
-{
-   echo $field."<br />";
-} 
-$fields = $this->db->field_data('maintenance');
-foreach ($fields as $field)
-{
-   echo $field->name;
-   echo $field->type;
-   echo $field->max_length;
-   echo $field->primary_key;
-   echo "<br />";
-} 	
-}
-
-function to_excel($query, $filename = 'exceloutput')
-{
-    $headers = ''; // just creating the var for field headers to append to below
-    $data = ''; // just creating the var for field data to append to below
-
-    $obj = &get_instance();
-$query = $this->db->query($query);
-    $fields = $query->field_data();
-    if ($query->num_rows() == 0)
-    {
-        #echo '<p>The table appears to have no data.</p>';
-        return 'empty';
-    }
-    else
-    {
-        # Headers array
-        $headers_array = array();
-        
-        foreach ($fields as $field)
-        {
-            # Add to headers
-            if (!in_array($field->name,$headers_array))
-            {
-                $headers .= $field->name . "\t";
-                $headers_array[] = $field->name;
-            }
-
-        }
-
-        foreach ($query->result() as $row)
-        {
-            $line = '';
-            foreach ($row as $value)
-            {
-                if ((!isset($value)) or ($value == ""))
-                {
-                    $value = "\t";
-                }
-                else
-                {
-                    $value = str_replace('"', '""', $value);
-                    $value = '"' . $value . '"' . "\t";
-                }
-                $line .= $value;
-            }
-            $data .= trim($line) . "\n";
-        }
-
-        $data = str_replace("\r", "", $data);
-
-        header("Content-type: application/x-msdownload");
-        header("Content-Disposition: attachment; filename=$filename.xls");
-        echo "$headers\n$data";
-    }
-} 
-
-
-
-public function GetRestRequestOrder(){
-$q= "SELECT * FROM request_order WHERE  deleted = 0 AND id_request_order NOT IN ( SELECT id_request_order FROM request_quotaion ) AND id_request_order NOT IN ( SELECT id_request_order FROM purchase_order ) AND id_locations = ".$this->session->userdata('country')." ORDER BY sort_order";
-$query = $this->db->query($q);	
-if($query->num_rows() > 0 ){
-return $query->result_array();
-} else { return array(); }
-}
-
-public function check_subqoutation($id){
-$this->db->where('id_sb',$id);
-$query = $this->db->get('request_quot_sb');
-if($query->num_rows() == 0)
-return false; 
-else 
-return true;
-}
-
-public function GetRestQoutation(){
-$q= "SELECT * FROM request_quotaion WHERE  deleted = 0 AND id_request_quotaion NOT IN ( SELECT id_request_quotaion FROM purchase_order ) AND id_locations = ".$this->session->userdata('country')." ORDER BY sort_order";
-$query = $this->db->query($q);
-if($query->num_rows() > 0 ){
-return $query->result_array();
-} else { return array(); }	
-}
- 
- 
-public function select_currency(){
-$this->db->select('countries.currency_code');
-$this->db->from('countries');
-$this->db->join('locations','locations.id_countries = countries.id_countries');
-$this->db->group_by('locations.id_countries');
-$this->db->order_by('locations.sort_order');
-$query=$this->db->get();	
-if($query->num_rows() > 0 ){
-return $query->result_array();
-} else { return array(); }
-}
-
-public function GetPurchaseOrder(){ 
-$q= "SELECT * FROM purchase_order WHERE  deleted = 0 AND id_purchase_order NOT IN ( SELECT id_purchase_order FROM receving_po ) AND id_locations = ".$this->session->userdata('country')." ORDER BY sort_order";
-$query = $this->db->query($q);
-if($query->num_rows() > 0 ){
-return $query->result_array();	
-} else { return array(); }
-}
-
-public function check_subreceiving($id){
-$this->db->where('id_purchase_order_sb',$id);
-$query = $this->db->get('receving_po_sb');
-if($query->num_rows() > 0)
-return $query->row_array(); 
-else 
-return array();
-}
-
-
-function GetBirthdaysThisMonth(){
-$month =  date('m');
-$q= "SELECT *  FROM clients WHERE dob LIKE '%-".$month."-%' AND active = 1 AND deleted = 0";
-$query = $this->db->query($q);
-$result = $query->result_array();
-if($query->num_rows() > 0 ){
-	return $query->num_rows();
-}else{
-	 return '';
-}
-}
-
-
-function getAll_calls($handled){
-$this->db->where('deleted',0); 
-$this->db->where('handled',$handled); 
-$this->db->order_by('created_date','DESC');
-$query=$this->db->get('call_center');
-if($query->num_rows() > 0 ){
-return $query->result_array();
-} else { return array(); }
-}
-
-function getAll_complains($solved){
-$this->db->where('deleted',0); 
-$this->db->where('solved',$solved); 
-$this->db->order_by('created_date','DESC');
-$query=$this->db->get('complains');
-if($query->num_rows() > 0 ){
-return $query->result_array();
-} else { return array(); }
-}
-
-function get_temp_list($id){
-	$this->db->select('newsletter_recipients.*,newsletter_temp_list.id_temp_list');
-	$this->db->from('newsletter_temp_list');
-	$this->db->join('newsletter_recipients','newsletter_recipients.id_recipients = newsletter_temp_list.id_recipients');
-	$this->db->where('newsletter_temp_list.id_template',$id);
-	$this->db->where('newsletter_recipients.deleted',0);
-	$query = $this->db->get();
-if($query->num_rows() > 0 ){
-return $query->result_array();
-} else { return array(); }
-}
-
-public function upload_ajax($file,$path){
-$actual_image_name='';
-$valid_formats = array("jpg", "jpeg", "png", "gif");
-$name = $_FILES[$file]['name'];
-$size = $_FILES[$file]['size'];	
-if(strlen($name))
-{
-$ext = strtolower(pathinfo($name, PATHINFO_EXTENSION));
-$txt = preg_replace('/[^A-Za-z0-9_-]/', '_', pathinfo($name, PATHINFO_FILENAME));
-if(in_array($ext,$valid_formats) && @getimagesize($_FILES[$file]['tmp_name']) !== FALSE)
-{
-if($size<(1024*1024))
-{
-//$actual_image_name = time().substr(str_replace(" ", "_", $txt), 5).".".$ext;
-$actual_image_name = str_replace(" ", "_", $txt).time().".".$ext;
-$tmp = $_FILES[$file]['tmp_name'];
-if(move_uploaded_file($tmp, $path.$actual_image_name))
-{
-//mysql_query("UPDATE users SET profile_image='$actual_image_name' WHERE uid='$session_id'");
-
-//echo "<img src='".$path.$actual_image_name."'  class='preview' width='50' height='50'>";
-//echo "<img src='".base_url()."images/activate.png' />&nbsp;&nbsp;<span style='color:#5ac43f'>file was uploaded successfully</span>";
-return $actual_image_name;
-exit;
-}
-else
-echo "<img src='".base_url()."images/icon-error.gif' />&nbsp;&nbsp;<span style='color:#A5000B'>failed</span>";
-exit;
-}
-else
-echo "<img src='".base_url()."images/icon-error.gif' />&nbsp;&nbsp;<span style='color:#A5000B'>Image file size max 1 MB</span>";	
-exit;				
-}
-else
-echo "<img src='".base_url()."images/icon-error.gif' />&nbsp;&nbsp;<span style='color:#A5000B'>Invalid file format..</span>";
-exit;	
-}
-
-else{
-echo "<img src='".base_url()."images/icon-error.gif' />&nbsp;&nbsp;<span style='color:#A5000B'>Please select image..!</span>";
-exit;
-}	
-}
-
-
 // home page texts as name => value: every field of config/home_page.php, filled from the home_page_text table
 function get_home_page(){
 $this->config->load('home_page');
@@ -659,7 +225,7 @@ return $texts;
 
 // videos (back_office/videos): the table and its menu entry are created on first use
 function videos_table(){
-if($this->db->table_exists('videos')) return;
+if($this->db->table_exists('videos')){ $this->videos_ar_columns(); return; }
 $this->db->query("CREATE TABLE IF NOT EXISTS `videos` (
 	`id_videos` int NOT NULL AUTO_INCREMENT,
 	`deleted` int NOT NULL DEFAULT 0,
@@ -673,10 +239,124 @@ $this->db->query("CREATE TABLE IF NOT EXISTS `videos` (
 	`description` text,
 	PRIMARY KEY (`id_videos`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8");
+$this->videos_ar_columns();
 if(!$this->db->where('name','videos')->count_all_results('content_type')){
 	$now=date('Y-m-d H:i:s');
 	$this->db->insert('content_type',array('name'=>'videos','url_name'=>'','icon'=>'','deleted'=>0,'created_date'=>$now,'updated_date'=>$now,'deleted_date'=>$now,'sort_order'=>9,'position'=>2,'gallery'=>0,'thumb_val_gal'=>'','resize_status'=>0,'used_name'=>'videos'));
 }
+}
+
+// ---------- Completed projects (back_office/projects, "Our projects" section of the home page) ----------
+// sector key => English name (the Arabic names are in config/site_lang.php and back_office_lang.php)
+function project_sectors(){
+return array(
+	'restaurants'  => 'Restaurants',
+	'bakeries'     => 'Bakeries & pastry shops',
+	'butchers'     => 'Butcher shops',
+	'supermarkets' => 'Supermarkets',
+	'cafes'        => 'Cafés & coffee shops',
+	'hotels'       => 'Hotels',
+	'hospitals'    => 'Hospitals',
+	'other'        => 'Other projects',
+);
+}
+
+function projects_table(){
+if(!$this->db->table_exists('projects')){
+	$this->db->query("CREATE TABLE IF NOT EXISTS `projects` (
+		`id_projects` int NOT NULL AUTO_INCREMENT,
+		`deleted` int NOT NULL DEFAULT 0,
+		`created_date` datetime DEFAULT NULL,
+		`updated_date` datetime DEFAULT NULL,
+		`deleted_date` datetime DEFAULT NULL,
+		`sort_order` int NOT NULL DEFAULT 0,
+		`status` int NOT NULL DEFAULT 0,
+		`title` varchar(250) DEFAULT NULL,
+		`title_ar` varchar(250) DEFAULT NULL,
+		`sector` varchar(40) DEFAULT NULL,
+		`place` varchar(150) DEFAULT NULL,
+		`place_ar` varchar(150) DEFAULT NULL,
+		`description` text,
+		`description_ar` text,
+		`photos` text,
+		PRIMARY KEY (`id_projects`)
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+if(!$this->db->where('name','projects')->count_all_results('content_type')){
+	$now=date('Y-m-d H:i:s');
+	$this->db->insert('content_type',array('name'=>'projects','url_name'=>'','icon'=>'','deleted'=>0,'created_date'=>$now,'updated_date'=>$now,'deleted_date'=>$now,'sort_order'=>8,'position'=>2,'gallery'=>0,'thumb_val_gal'=>'','resize_status'=>0,'used_name'=>'projects'));
+}
+foreach(array('uploads/projects','uploads/projects/thumb') as $dir){
+	if(!is_dir(FCPATH.$dir)) @mkdir(FCPATH.$dir,0755,true);
+}
+}
+
+// the photo file names of a project (the first one is the cover)
+function project_photos($row){
+$list=json_decode(isset($row['photos']) ? (string)$row['photos'] : '',true);
+return is_array($list) ? array_values(array_filter($list,'is_string')) : array();
+}
+
+// one uploaded file ($_FILES-style array) -> a resized jpg/png in uploads/projects (max 1600 px)
+// plus a 700 px thumbnail; returns the file name, or false when it is not a real image
+function project_save_photo($file){
+if(empty($file['tmp_name']) || !is_uploaded_file($file['tmp_name']) || $file['error'] !== UPLOAD_ERR_OK) return false;
+if($file['size'] > 15*1024*1024) return false;
+$info=@getimagesize($file['tmp_name']);
+if(!$info || !in_array($info[2],array(IMAGETYPE_JPEG,IMAGETYPE_PNG,IMAGETYPE_WEBP),true)) return false;
+switch($info[2]){
+	case IMAGETYPE_JPEG: $img=@imagecreatefromjpeg($file['tmp_name']); break;
+	case IMAGETYPE_PNG: $img=@imagecreatefrompng($file['tmp_name']); break;
+	default: $img=function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($file['tmp_name']) : false;
+}
+if(!$img) return false;
+// phone photos: turn them the right way up
+if($info[2]==IMAGETYPE_JPEG && function_exists('exif_read_data')){
+	$exif=@exif_read_data($file['tmp_name']);
+	$o=isset($exif['Orientation']) ? (int)$exif['Orientation'] : 1;
+	if($o==3) $img=imagerotate($img,180,0); elseif($o==6) $img=imagerotate($img,-90,0); elseif($o==8) $img=imagerotate($img,90,0);
+}
+$name=date('Ymd').'_'.bin2hex(random_bytes(6)).'.jpg';
+$ok=$this->project_resize($img,FCPATH.'uploads/projects/'.$name,1600)
+	&& $this->project_resize($img,FCPATH.'uploads/projects/thumb/'.$name,700);
+imagedestroy($img);
+if(!$ok){ @unlink(FCPATH.'uploads/projects/'.$name); @unlink(FCPATH.'uploads/projects/thumb/'.$name); return false; }
+return $name;
+}
+
+function project_resize($img,$dest,$max){
+$w=imagesx($img); $h=imagesy($img);
+$scale=min(1,$max/max($w,$h));
+$nw=max(1,(int)round($w*$scale)); $nh=max(1,(int)round($h*$scale));
+$out=imagecreatetruecolor($nw,$nh);
+imagefill($out,0,0,imagecolorallocate($out,255,255,255));
+imagecopyresampled($out,$img,0,0,0,0,$nw,$nh,$w,$h);
+$ok=imagejpeg($out,$dest,84);
+imagedestroy($out);
+return $ok;
+}
+
+function project_delete_photo($name){
+if(!preg_match('/^[A-Za-z0-9_.-]+$/',$name)) return;
+@unlink(FCPATH.'uploads/projects/'.$name);
+@unlink(FCPATH.'uploads/projects/thumb/'.$name);
+}
+
+// the projects shown on the website: only those with at least one photo
+function get_projects(){
+$this->projects_table();
+$out=array();
+foreach($this->getAll('projects','sort_order') as $row){
+	$row['photo_list']=$this->project_photos($row);
+	if(count($row['photo_list'])) $out[]=$row;
+}
+return $out;
+}
+
+// the Arabic title and text of each video (shown on the Arabic page)
+function videos_ar_columns(){
+if(!$this->db->field_exists('title_ar','videos')) $this->db->query("ALTER TABLE `videos` ADD `title_ar` varchar(250) DEFAULT NULL AFTER `title`");
+if(!$this->db->field_exists('description_ar','videos')) $this->db->query("ALTER TABLE `videos` ADD `description_ar` text AFTER `description`");
 }
 
 // the videos shown on the website, each with its player link
@@ -719,19 +399,6 @@ if($host=='youtube.com' || $host=='youtu.be' || $host=='youtube-nocookie.com'){
 	);
 }
 return false;
-}
-
-function parent_rows($id = 0, $arr){
-$q = "SELECT * FROM testing WHERE id_parent = ".(int)$id;
-$query = $this->db->query($q);
-if($query->num_rows() > 0){
-$res = $query->result_array();
-foreach($res as $val){
-$arr[] = $val;
-$arr = $this->parent_rows($val["id"],$arr);	
-}
-}
-return $arr;
 }
 
 }

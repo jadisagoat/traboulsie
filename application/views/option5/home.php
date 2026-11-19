@@ -3,59 +3,7 @@
    Catalogue layout of option 4 plus the services and FAQ sections, a language switch and a
    full right-to-left Arabic page. Same data as the other options, see controllers/home.php;
    the Arabic labels are in config/site_lang.php. */
-if(!function_exists('o5_e')){
-	function o5_e($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8', false); }
-	// the Arabic version of a label on the Arabic page, the label itself otherwise
-	function o5_t($s){
-		$s = (string)$s;
-		if(empty($GLOBALS['o5_lang']) || $GLOBALS['o5_lang'] != 'ar') return $s;
-		$k = trim(preg_replace('/\s+/u', ' ', html_entity_decode($s, ENT_QUOTES, 'UTF-8')));
-		return isset($GLOBALS['o5_dict'][$k]) ? $GLOBALS['o5_dict'][$k] : $s;
-	}
-	// translated + escaped
-	function o5_te($s){ return o5_e(o5_t($s)); }
-	// product name on the Arabic page: "Showcase Fridge 108" -> "برّاد عرض 108"
-	function o5_pname($s){
-		if(empty($GLOBALS['o5_lang']) || $GLOBALS['o5_lang'] != 'ar') return $s;
-		$num = preg_match('/\s(\d{1,4})\s*$/', $s, $m) ? $m[1] : '';
-		$type = trim($num === '' ? $s : substr($s, 0, -strlen($m[0])));
-		foreach($GLOBALS['o5_pdict'] as $en => $ar){ if(strcasecmp($en, $type) == 0) return trim($ar.' '.$num); }
-		return $s;
-	}
-	function o5_title($s){
-		$s = ucwords(strtolower(preg_replace('/\s+/', ' ', trim(html_entity_decode($s, ENT_QUOTES, 'UTF-8')))));
-		return preg_replace_callback('/(?<=\s)(And|Or|Of|For|The)(?=\s)/', function($m){ return strtolower($m[1]); }, $s);
-	}
-	function o5_name($s){ return ucfirst(preg_replace('/\s+/', ' ', trim(html_entity_decode($s, ENT_QUOTES, 'UTF-8')))); }
-	function o5_icon($title, $map, $default){
-		$t = strtolower($title);
-		foreach($map as $needle => $icon){ if(preg_match('/'.$needle.'/', $t)) return $icon; }
-		return $default;
-	}
-	// a back office text (translated on the Arabic page) inside its tag, or nothing when empty
-	function o5_tag($open, $text, $close){ return trim($text) === '' ? '' : $open.o5_te($text).$close; }
-	function o5_or($text, $default){ return trim($text) === '' ? $default : $text; }
-	function o5_num($typed, $auto){ $n = preg_replace('/\D/', '', $typed); return $n === '' ? $auto : (int)$n; }
-	// hero title: one line per line typed in the back office, each rising from behind a mask, [words] in red
-	function o5_lines($s){
-		$out = '';
-		foreach(preg_split('/\s*\R\s*/u', trim($s)) as $i => $line){
-			$line = preg_replace('/\[(.+?)\]/su', '<em>$1</em>', o5_te($line));
-			$out .= '<span class="line"><span style="--i:'.$i.'">'.$line.'</span></span> ';
-		}
-		return $out;
-	}
-	function o5_lines_split($text){ return preg_split('/\s*\R\s*/u', trim((string)$text), -1, PREG_SPLIT_NO_EMPTY); }
-	function o5_faq($text){
-		$out = array();
-		foreach(o5_lines_split($text) as $line){
-			if(strpos($line, '|') === FALSE) continue;
-			list($q, $a) = array_map('trim', explode('|', $line, 2));
-			if($q !== '' && $a !== '') $out[] = array($q, $a);
-		}
-		return $out;
-	}
-}
+// the helpers (o5_e, o5_t, o5_pname ...) are in helpers/o5_helper.php, loaded by controllers/home.php
 $o5_lang = isset($lang) && $lang == 'ar' ? 'ar' : 'en';
 $is_ar = $o5_lang == 'ar';
 $this->config->load('site_lang', TRUE);
@@ -74,6 +22,25 @@ foreach(array('seo_text_ar', 'seo_services_ar', 'seo_services_en', 'seo_faq', 's
 $base = base_url();
 $url_en = $base;
 $url_ar = $base.'ar';
+// the photo and video pages are shown by this same view (their content is views/option5/gallery.php): $page = home | photos | videos
+$page = isset($page) && in_array($page, array('photos', 'videos', 'sector', 'category', 'product', 'export', 'guides', 'guide', 'section')) ? $page : 'home';
+// a page that shows one part of the home page (yoursite/about, yoursite/faq ...): $only = products | services | about | clients | projects | faq | contact
+$only = $page === 'section' && isset($section) ? $section : '';
+$is_gallery = in_array($page, array('photos', 'videos'));
+$page_path = isset($page_path) ? $page_path : $page;
+$sectors = isset($sectors) ? $sectors : array();
+$ask_subject = '';
+$home_url = $is_ar ? $url_ar : $url_en;
+$photos_url = $base.($is_ar ? 'ar/' : '').'photos';
+$videos_url = $base.($is_ar ? 'ar/' : '').'videos';
+// a link to a section of the home page: "#about" on the home page, "home address#about" on the other pages
+$a = $page === 'home' ? '' : $home_url;
+// the contact form is on every page but the photo and video pages: "#contact" stays on the page being read
+$c = $is_gallery ? o5_url('contact') : '';
+// each entry of the menu opens its own page
+$nav_url = array('home' => $page === 'home' ? '#home' : $home_url, 'products' => o5_url('products'), 'services' => o5_url('services'), 'about' => o5_url('about'), 'clients' => o5_url('clients'), 'projects' => o5_url('projects'), 'showroom' => $photos_url, 'videos' => $videos_url, 'faq' => o5_url('faq'), 'contact' => o5_url('contact'));
+// the language switch stays on the same page
+if($page !== 'home'){ $url_en = $base.$page_path; $url_ar = $base.'ar/'.$page_path; }
 $cat_icons = array('refrig|fridge|cold' => 'fridge', 'cook|heat|oven|grill|bak' => 'flame', 'stain|steel' => 'layers', 'juice|coffee|snack' => 'coffee', 'prep|butch|process' => 'knife', 'market|storage' => 'cart');
 $client_icons = array('hospital' => 'medical', 'restaurant' => 'utensils', 'pastr|baker|sweet' => 'cake', 'supermarket' => 'cart');
 $cat_texts = array(
@@ -108,9 +75,29 @@ foreach($client_groups as $groups){
 $stat_products = o5_num($hp['stat_products_number'], $product_total);
 $stat_sectors = o5_num($hp['stat_sectors_number'], count($categories));
 $stat_clients = o5_num($hp['stat_clients_number'], count($unique_clients));
+// feature cards: an icon that shows what the card is about (factory, stainless work table, shop, wrench), drawn line by line.
+// It is picked from the words of the title; when no word matches, from the position of the card.
+$feature_icons = array(
+	'factory' => array('M3 21V11l6 4v-4l6 4V4h4v17', 'M2 21h20', 'M7 17.5h1.5M12 17.5h1.5'),
+	'steel' => array('M2 9h20', 'M4.5 9v12M19.5 9v12', 'M4.5 16.5h15', 'M7.5 9v2.5a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V9', 'M17 9V5.5a2 2 0 0 0-4 0'),
+	'shop' => array('M3 9l1.6-5h14.8L21 9', 'M3 9a3 3 0 0 0 6 0a3 3 0 0 0 6 0a3 3 0 0 0 6 0', 'M5 12.5V21h14v-8.5', 'M10 21v-5h4v5'),
+	'tool' => array('M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z'),
+);
+$feature_words = array(
+	'tool' => 'mainten|repair|after.?sale|صيان|تصليح',
+	'steel' => 'stainless|steel|fabricat|ستانلس|ستيل|فولاذ',
+	'shop' => 'project|turn.?key|restaurant|مشاريع|مشروع|مطاعم',
+	'factory' => 'factory|workshop|manufactur|made|مصنع|تصنيع|صناعة',
+);
+$feature_order = array_keys($feature_icons);
 $features = array();
 for($n = 1; $n <= 4; $n++){
-	if(trim($hp['feature_'.$n.'_title']) !== '') $features[] = array('title' => $hp['feature_'.$n.'_title'], 'text' => $hp['feature_'.$n.'_text']);
+	if(trim($hp['feature_'.$n.'_title']) === '') continue;
+	$icon = $feature_order[$n - 1];
+	foreach($feature_words as $name => $words){
+		if(preg_match('/'.$words.'/iu', $hp['feature_'.$n.'_title'])){ $icon = $name; break; }
+	}
+	$features[] = array('title' => $hp['feature_'.$n.'_title'], 'text' => $hp['feature_'.$n.'_text'], 'icon' => $icon);
 }
 $services = o5_lines_split($is_ar ? $hp['seo_services_ar'] : $hp['seo_services_en']);
 $faq = o5_faq($is_ar ? $hp['seo_faq'] : $hp['seo_faq_en']);
@@ -169,7 +156,15 @@ foreach($fb_photos as $k => $photo) $fb_photos[$k]['title'] = $is_ar ? o5_pname(
 $band_img = count($hero_images) ? $hero_images[count($hero_images) - 1]['src'] : (count($showroom) ? $showroom[0]['src'] : '');
 $company = o5_t(o5_or($hp['contact_company'], 'Traboulsi Est. for Trading & Industry'));
 
-$nav = array('home' => 'Home', 'products' => 'Products', 'services' => 'Services', 'about' => 'About', 'clients' => 'Our clients', 'showroom' => 'Showroom', 'videos' => 'Videos', 'faq' => 'FAQ', 'contact' => 'Contact');
+// completed projects (back_office/projects): only shown once one has photos
+$projects = isset($projects) ? $projects : array();
+$project_sectors = $this->fct->project_sectors();
+$project_icons = array('restaurants' => 'i-utensils', 'bakeries' => 'i-bread', 'butchers' => 'i-knife', 'supermarkets' => 'i-cart', 'cafes' => 'i-coffee', 'hotels' => 'i-building', 'hospitals' => 'i-medical', 'other' => 'i-wrench');
+$project_count = array();
+foreach($projects as $pr){ $k = isset($project_sectors[$pr['sector']]) ? $pr['sector'] : 'other'; $project_count[$k] = isset($project_count[$k]) ? $project_count[$k] + 1 : 1; }
+
+$nav = array('home' => 'Home', 'products' => 'Products', 'services' => 'Services', 'about' => 'About', 'clients' => 'Our clients', 'projects' => 'Projects', 'showroom' => 'Showroom', 'videos' => 'Videos', 'faq' => 'FAQ', 'contact' => 'Contact');
+if(!count($projects)) unset($nav['projects']);
 if(!count($showroom)) unset($nav['showroom']);
 if(!count($videos) && !$fb_plugin) unset($nav['videos']);
 if(!count($services)) unset($nav['services']);
@@ -193,6 +188,8 @@ if(!count($faq)) unset($nav['faq']);
 	<symbol id="i-arrow" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></symbol>
 	<symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
 	<symbol id="i-rows" viewBox="0 0 24 24"><rect x="3" y="4" width="7" height="6"/><line x1="13" y1="6" x2="21" y2="6"/><line x1="13" y1="9" x2="18" y2="9"/><rect x="3" y="14" width="7" height="6"/><line x1="13" y1="16" x2="21" y2="16"/><line x1="13" y1="19" x2="18" y2="19"/></symbol>
+	<symbol id="i-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></symbol>
+	<symbol id="i-play" viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></symbol>
 	<symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></symbol>
 	<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
 	<symbol id="i-all" viewBox="0 0 48 48"><rect x="6" y="6" width="15" height="15" rx="2"/><rect x="27" y="6" width="15" height="15" rx="2"/><rect x="6" y="27" width="15" height="15" rx="2"/><rect x="27" y="27" width="15" height="15" rx="2"/></symbol>
@@ -219,9 +216,11 @@ if(!count($faq)) unset($nav['faq']);
 	<div class="loader-panel"></div>
 	<canvas class="loader-sparks" id="loaderSparks"></canvas>
 	<div class="loader-inner">
-		<img src="<?=$base?>images/logo.png" width="300" height="54" alt="<?=o5_e($company)?>">
+		<span class="loader-ring" aria-hidden="true"></span>
+		<span class="loader-logo"><img src="<?=$base?>images/logo.png" width="300" height="54" alt="<?=o5_e($company)?>"></span>
 		<b class="loader-year" id="loaderYear" data-from="<?=$founded ? $founded : 1982?>" data-to="<?=date('Y')?>"><?=$founded ? $founded : 1982?></b>
 		<p class="loader-tag"><?=$is_ar ? 'صناعة لبنانية منذ '.($founded ? $founded : 1982) : 'Made in Lebanon since '.($founded ? $founded : 1982)?></p>
+		<p class="loader-words"><?php foreach(($is_ar ? array('تبريد', 'خطوط طبخ', 'ستانلس ستيل', 'تركيب وصيانة') : array('Refrigeration', 'Cooking lines', 'Stainless steel', 'Installation & service')) as $i => $word){ ?><span style="--i:<?=$i?>"><?=$word?></span><?php } ?></p>
 		<div class="loader-bar"><span id="loaderBar"></span></div>
 		<b class="loader-num" id="loaderNum">0</b>
 	</div>
@@ -248,7 +247,7 @@ if(!count($faq)) unset($nav['faq']);
 
 	<div class="navbar">
 		<div class="container navbar-inner">
-			<a href="#home" class="brand" aria-label="<?=o5_e($company)?>">
+			<a href="<?=$a?>#home" class="brand" aria-label="<?=o5_e($company)?>">
 				<img src="<?=$base?>images/logo.png" width="300" height="54" alt="<?=o5_e($company)?><?=$founded ? ' — '.o5_t('Since').' '.$founded : ''?>">
 			</a>
 
@@ -257,19 +256,32 @@ if(!count($faq)) unset($nav['faq']);
 					<?php foreach($nav as $id => $label){
 						if($id == 'products'){ ?>
 					<li class="has-drop">
-						<a href="#products"><?=o5_te($label)?><svg class="ic caret"><use href="#i-down"/></svg></a>
+						<a href="<?=o5_e($nav_url['products'])?>"<?=$only === 'products' ? ' class="is-active"' : ''?>><?=o5_te($label)?><svg class="ic caret"><use href="#i-down"/></svg></a>
 						<div class="drop">
 							<ul>
-								<li><a href="#products" data-filter-link="*"><?=o5_te('All products')?> <small><?=$product_total?></small></a></li>
+								<li><a href="<?=o5_e($nav_url['products'])?>"><?=o5_te('All products')?> <small><?=$product_total?></small></a></li>
 								<?php foreach($categories as $category){
 									if(!$cat_counts[$category['id_category']]) continue; ?>
-								<li><a href="#products" data-filter-link="prod<?=$category['id_category']?>"><?=o5_e($cat_names[$category['id_category']])?> <small><?=$cat_counts[$category['id_category']]?></small></a></li>
+								<li><a href="<?=o5_e(o5_url('products/'.$category['slug']))?>"><?=o5_e($cat_names[$category['id_category']])?> <small><?=$cat_counts[$category['id_category']]?></small></a></li>
 								<?php } ?>
 							</ul>
 						</div>
 					</li>
+					<?php }elseif($id == 'services' && count($sectors)){ // the sector pages ?>
+					<li class="has-drop">
+						<a href="<?=o5_e($nav_url['services'])?>"<?=$only === 'services' ? ' class="is-active"' : ''?>><?=o5_te($label)?><svg class="ic caret"><use href="#i-down"/></svg></a>
+						<div class="drop">
+							<ul>
+								<?php foreach($sectors as $s){ ?>
+								<li><a href="<?=o5_e(o5_url($s['path']))?>"><?=o5_e($s[$o5_lang]['name'])?></a></li>
+								<?php } ?>
+								<li><a href="<?=o5_e(o5_url('export'))?>"><?=o5_te('Delivery & export')?></a></li>
+								<li><a href="<?=o5_e(o5_url('guides'))?>"><?=o5_te('Guides')?></a></li>
+							</ul>
+						</div>
+					</li>
 					<?php }else{ ?>
-					<li><a href="#<?=$id?>"><?=o5_te($label)?></a></li>
+					<li><a href="<?=o5_e($nav_url[$id])?>"<?=(($page === 'photos' && $id == 'showroom') || ($page === 'videos' && $id == 'videos') || $only === $id) ? ' class="is-active"' : ''?>><?=o5_te($label)?></a></li>
 					<?php } } ?>
 				</ul>
 				<div class="nav-mobile-info">
@@ -280,7 +292,7 @@ if(!count($faq)) unset($nav['faq']);
 
 			<div class="navbar-side">
 				<a class="lang-switch lang-switch-nav" href="<?=$is_ar ? $url_en : $url_ar?>" lang="<?=$is_ar ? 'en' : 'ar'?>" dir="<?=$is_ar ? 'ltr' : 'rtl'?>" aria-label="<?=$is_ar ? 'English version' : 'النسخة العربية'?>"><?=$is_ar ? 'EN' : 'عربي'?></a>
-				<button type="button" class="icon-btn" id="searchToggle" aria-label="<?=o5_te('Search a product')?>"><svg class="ic"><use href="#i-search"/></svg></button>
+				<?php if($page === 'home' || $only === 'products'){ ?><button type="button" class="icon-btn" id="searchToggle" aria-label="<?=o5_te('Search a product')?>"><svg class="ic"><use href="#i-search"/></svg></button><?php } ?>
 				<button type="button" class="burger" id="menuToggle" aria-controls="nav" aria-expanded="false" aria-label="<?=o5_te('Open menu')?>"><span></span><span></span><span></span></button>
 			</div>
 		</div>
@@ -289,35 +301,113 @@ if(!count($faq)) unset($nav['faq']);
 </header>
 
 <main id="main">
+<?php if($is_gallery){ include APPPATH.'views/option5/gallery.php'; }elseif($page !== 'home' && $page !== 'section'){ include APPPATH.'views/option5/pages.php'; }else{ ?>
+<?php if($only !== ''){ // a page of its own for one part of the home page: its title first ?>
+<section id="top" class="g-hero is-dark">
+	<div class="glow glow-a" aria-hidden="true"></div>
+	<div class="container">
+		<nav class="crumbs" aria-label="<?=o5_te('You are here')?>" data-reveal="up">
+			<a href="<?=o5_e($home_url)?>"><?=o5_te('Home')?></a><span aria-hidden="true">/</span><b><?=o5_e($section_page['name'])?></b>
+		</nav>
+		<h1 class="g-title" data-reveal="up" style="--d:100ms"><?=o5_e($section_page['h1'])?></h1>
+		<p class="lead" data-reveal="up" style="--d:180ms"><?=o5_e($section_page['lead'])?></p>
+	</div>
+</section>
+<?php } ?>
 
+<?php if($only === ''){ ?>
 <!-- ============ Slider ============ -->
-<section id="home" class="slider" aria-roledescription="carousel" aria-label="<?=o5_e($company)?>">
+<?php // short loops cut from the factory reels of the Facebook page (images/hero-reels)
+$hero_reels = array();
+foreach(array('laser' => 'Laser cutting', 'grills' => 'Grills & hoods', 'finishing' => 'Finishing') as $file => $label){
+	if(is_file('images/hero-reels/'.$file.'.mp4')) $hero_reels[] = array('file' => $file, 'label' => $label);
+}
+?>
+<?php // the background of the banner: a designed drawing (default) or the photos of back office > Banner
+$hero_designed = !isset($hp['hero_style']) || $hp['hero_style'] !== 'photos' || !count($hero_images); ?>
+<?php // the stage of the banner: the factory loops and two photos of the catalogue, turning one after the other
+$hero_stage = array();
+if(count($hero_reels) == 3){
+	$stage_photos = array();
+	foreach(array('Complete Cooking Line' => 'Cooking lines', 'Showcase Fridge 111' => 'Display fridges') as $needle => $label){
+		foreach($products as $product){
+			if(stripos($product['title'], $needle) === FALSE) continue;
+			$dir = is_file('uploads/products/600x455/'.$product['image']) ? 'uploads/products/600x455/' : 'uploads/products/290x220/';
+			$stage_photos[] = array('type' => 'photo', 'src' => $dir.$product['image'], 'label' => $label, 'href' => o5_url('product/'.$product['slug']));
+			break;
+		}
+	}
+	// video, photo, video, photo, video
+	foreach($hero_reels as $i => $reel){
+		$hero_stage[] = array('type' => 'video', 'src' => 'images/hero-reels/'.$reel['file'].'.mp4', 'poster' => 'images/hero-reels/'.$reel['file'].'.jpg', 'label' => $reel['label'], 'href' => $a.'#videos');
+		if(isset($stage_photos[$i])) $hero_stage[] = $stage_photos[$i];
+	}
+	// the owner of the company, a short candid loop cut from a reel of the Facebook page (images/hero-reels/owner.mp4, owner.jpg its first frame),
+	// takes the middle of the stage, where it starts, instead of the second photo
+	if(is_file('images/hero-reels/owner.jpg') && count($hero_stage) == 5){
+		$owner_card = array('type' => 'portrait', 'src' => 'images/hero-reels/owner.jpg', 'poster' => 'images/hero-reels/owner.jpg', 'label' => 'Company owner', 'href' => $a.'#about');
+		if(is_file('images/hero-reels/owner.mp4')) $owner_card['video'] = 'images/hero-reels/owner.mp4';
+		$hero_stage = array($hero_stage[0], $hero_stage[1], $owner_card, $hero_stage[2], $hero_stage[4]);
+	}
+}
+$stage_first = (int)floor(count($hero_stage) / 2); ?>
+<section id="home" class="slider<?=count($hero_stage) ? ' has-reels has-stage' : ''?><?=$hero_designed ? ' is-designed' : ''?>" aria-roledescription="carousel" aria-label="<?=o5_e($company)?>">
 	<div class="slides">
-		<?php foreach($hero_images as $i => $image){ ?>
+		<?php if($hero_designed) $this->load->view('option5/_hero_art'); else foreach($hero_images as $i => $image){ ?>
 		<div class="slide<?=$i == 0 ? ' is-active' : ''?>"><img src="<?=$base.o5_e($image['src'])?>" alt="<?=o5_te($image['title'])?>" <?=$i == 0 ? 'fetchpriority="high"' : 'fetchpriority="low"'?>></div>
+		<?php } ?>
+		<?php if($hero_designed && count($hero_stage)){ // the video or photo of the card in front, large and softened behind the whole banner ?>
+		<div class="stage-ambient" aria-hidden="true">
+			<?php foreach($hero_stage as $i => $card){ ?><span class="is-<?=$card['type']?><?=$i == $stage_first ? ' is-active' : ''?>"<?php if($card['type'] != 'photo'){ ?> style="background-image:url(<?=$base.o5_e($card['poster'])?>)"<?php } ?>><?php if($card['type'] == 'video'){ ?><video muted loop playsinline preload="none" data-src="<?=$base.o5_e($card['src'])?>"></video><?php } ?></span><?php } ?>
+		</div>
 		<?php } ?>
 	</div>
 	<div class="slider-shade" aria-hidden="true"></div>
 	<canvas class="hero-sparks" id="heroSparks" aria-hidden="true"></canvas>
 	<div class="hero-stamp" aria-hidden="true">
-		<svg viewBox="0 0 200 200"><defs><path id="stampPath" d="M100,100 m-80,0 a80,80 0 1,1 160,0 a80,80 0 1,1 -160,0"/></defs><text><textPath href="#stampPath"<?=$is_ar ? '' : ' textLength="490"'?>><?php if($is_ar){ ?>صناعة لبنانية • منذ <?=$founded ? $founded : 1982?> • صناعة لبنانية • منذ <?=$founded ? $founded : 1982?> • <?php }else{ ?>MADE IN LEBANON • SINCE <?=$founded ? $founded : 1982?> • TRABOULSI EST. • <?php } ?></textPath></text></svg>
+		<svg viewBox="0 0 200 200"><defs><path id="stampPath" d="M100,100 m-80,0 a80,80 0 1,1 160,0 a80,80 0 1,1 -160,0"/></defs><text><textPath href="<?=$a?>#stampPath"<?=$is_ar ? '' : ' textLength="490"'?>><?php if($is_ar){ ?>صناعة لبنانية • منذ <?=$founded ? $founded : 1982?> • صناعة لبنانية • منذ <?=$founded ? $founded : 1982?> • <?php }else{ ?>MADE IN LEBANON • SINCE <?=$founded ? $founded : 1982?> • TRABOULSI EST. • <?php } ?></textPath></text></svg>
 		<span class="stamp-core"><b><?=$founded ? $founded : 1982?></b><small><?=$is_ar ? 'تأسست' : 'EST.'?></small></span>
 	</div>
 	<div class="hero-chips" aria-hidden="true">
 		<span class="hero-chip chip-factory"><i class="live-dot"></i><span><b><?=o5_te('Factory')?></b><small><?=o5_te('Deir El Zahrani')?></small></span></span>
 		<span class="hero-chip chip-branch"><svg class="ic"><use href="#i-pin"/></svg><span><b><?=o5_te('Branch')?></b><small><?=o5_te('Khalde · Beirut')?></small></span></span>
 	</div>
+	<?php if(count($hero_stage)){ ?>
+	<div class="hero-reels hero-stage" id="heroStage" role="group" aria-label="<?=o5_te('From our factory')?>" style="--n:<?=count($hero_stage)?>">
+		<div class="stage-cards">
+			<?php foreach($hero_stage as $i => $card){ ?>
+			<a href="<?=o5_e($card['href'])?>" class="stage-card is-<?=$card['type']?><?=$i == $stage_first ? ' is-active' : ''?>" style="--p:<?=$i - $stage_first?>;--ap:<?=abs($i - $stage_first)?>;z-index:<?=10 - abs($i - $stage_first)?>" aria-label="<?=o5_te($card['label'])?>">
+				<?php if($card['type'] == 'video' || isset($card['video'])){ ?>
+				<video muted loop playsinline preload="none" poster="<?=$base.o5_e($card['poster'])?>" data-src="<?=$base.o5_e(isset($card['video']) ? $card['video'] : $card['src'])?>" aria-hidden="true"></video>
+				<?php }else{ ?>
+				<img src="<?=$base.o5_e($card['src'])?>" alt="<?=o5_te($card['label'])?>" loading="lazy">
+				<?php } ?>
+				<span class="stage-kind" aria-hidden="true"><svg class="ic"><use href="#i-<?=$card['type'] == 'video' ? 'play' : ($card['type'] == 'portrait' ? 'check' : 'image')?>"/></svg></span>
+				<span class="stage-label"><b><?=str_pad($i + 1, 2, '0', STR_PAD_LEFT)?></b><?=o5_te($card['label'])?></span>
+				<span class="stage-bar" aria-hidden="true"><i></i></span>
+			</a>
+			<?php } ?>
+		</div>
+		<div class="stage-nav">
+			<button type="button" class="stage-btn" data-stage="-1" aria-label="<?=o5_te('Previous')?>"><svg class="ic"><use href="#i-left"/></svg></button>
+			<span class="stage-count" aria-hidden="true"><b id="stageNow"><?=str_pad($stage_first + 1, 2, '0', STR_PAD_LEFT)?></b><i></i><?=str_pad(count($hero_stage), 2, '0', STR_PAD_LEFT)?></span>
+			<button type="button" class="stage-btn" data-stage="1" aria-label="<?=o5_te('Next')?>"><svg class="ic"><use href="#i-right"/></svg></button>
+			<a href="<?=$a?>#videos" class="stage-more"><?=o5_te('Watch the videos')?><svg class="ic"><use href="#i-arrow"/></svg></a>
+		</div>
+	</div>
+	<?php } ?>
 	<div class="container slider-caption">
 		<?=o5_tag('<p class="hero-eyebrow">', $hp['hero_eyebrow'], '</p>')?>
 		<?php if($is_ar && trim($hp['hero_title_ar']) !== ''){ ?><h1 class="hero-title"><?=o5_lines($hp['hero_title_ar'])?></h1>
 		<?php }elseif(trim($hp['hero_title']) !== ''){ ?><h1 class="hero-title"><?=o5_lines($hp['hero_title'])?></h1><?php } ?>
 		<?php if($is_ar && trim($hp['hero_text_ar']) !== ''){ ?><p class="hero-text"><?=o5_e($hp['hero_text_ar'])?></p><?php } ?>
+		<?php if(!$is_ar && trim((string)@$hp['hero_line_en']) !== ''){ ?><p class="hero-text"><?=o5_e($hp['hero_line_en'])?></p><?php } ?>
 		<div class="hero-actions">
-			<?=o5_tag('<a href="#products" class="btn-more btn-white" data-magnetic><span>', $hp['hero_button_1'], '</span><svg class="ic"><use href="#i-plus"/></svg></a>')?>
-			<?=o5_tag('<a href="#contact" class="btn-link btn-link-light">', $hp['hero_button_2'], '<svg class="ic"><use href="#i-arrow"/></svg></a>')?>
+			<?=o5_tag('<a href="'.$a.'#products" class="btn-more btn-white" data-magnetic><span>', $hp['hero_button_1'], '</span><svg class="ic"><use href="#i-plus"/></svg></a>')?>
+			<?=o5_tag('<a href="'.$a.'#contact" class="btn-link btn-link-light">', $hp['hero_button_2'], '<svg class="ic"><use href="#i-arrow"/></svg></a>')?>
 		</div>
 	</div>
-	<?php if(count($hero_images) > 1){ ?>
+	<?php if(count($hero_images) > 1 && !$hero_designed){ ?>
 	<p class="slider-count" aria-hidden="true"><b id="slideNow">01</b><span></span><?=str_pad(count($hero_images), 2, '0', STR_PAD_LEFT)?></p>
 	<button type="button" class="slider-arrow prev" aria-label="<?=o5_te('Previous photo')?>"><svg class="ic"><use href="#i-left"/></svg></button>
 	<button type="button" class="slider-arrow next" aria-label="<?=o5_te('Next photo')?>"><svg class="ic"><use href="#i-right"/></svg></button>
@@ -328,14 +418,18 @@ if(!count($faq)) unset($nav['faq']);
 	</div>
 	<?php } ?>
 </section>
+<?php } ?>
 
+<?php if($only === ''){ ?>
 <!-- ============ Two crossing bands with what we do ============ -->
 <?php $tape_words = $is_ar ? array('تصنيع', 'برادات', 'ستانلس ستيل', 'شوايات', 'غرف تبريد', 'معدات مطابخ', 'تركيب', 'صيانة', 'صناعة لبنانية') : array('Manufacturing', 'Refrigeration', 'Stainless steel', 'Grills', 'Cold rooms', 'Kitchen equipment', 'Installation', 'Maintenance', 'Made in Lebanon'); ?>
 <div class="tapes" aria-hidden="true">
 	<div class="tape tape-a"><div class="tape-track"><?php for($copy = 0; $copy < 2; $copy++){ foreach($tape_words as $word){ ?><span><?=o5_e($word)?></span><i>✦</i><?php } } ?></div></div>
 	<div class="tape tape-b"><div class="tape-track"><?php for($copy = 0; $copy < 2; $copy++){ foreach(array_reverse($tape_words) as $word){ ?><span><?=o5_e($word)?></span><i>✦</i><?php } } ?></div></div>
 </div>
+<?php } ?>
 
+<?php if($only === ''){ ?>
 <!-- ============ Quote + key figures ============ -->
 <section class="quote">
 	<?php if($founded){ ?><div class="ghost-year" aria-hidden="true" data-drift><?=$founded?></div><?php } ?>
@@ -354,7 +448,9 @@ if(!count($faq)) unset($nav['faq']);
 		</ul>
 	</div>
 </section>
+<?php } ?>
 
+<?php if($only === '' || $only === 'products'){ ?>
 <!-- ============ Category tiles ============ -->
 <section class="categories is-dark" aria-label="<?=o5_te('Product categories')?>">
 	<div class="glow glow-a" aria-hidden="true"></div>
@@ -366,7 +462,7 @@ if(!count($faq)) unset($nav['faq']);
 			<?=o5_tag('<p class="lead">', $hp['solutions_text'], '</p>')?>
 		</div>
 		<div class="cat-tiles">
-			<a class="cat-tile" href="#products" data-filter-link="*" data-reveal="up" data-tilt>
+			<a class="cat-tile" href="<?=$only === 'products' ? '#products' : o5_e($nav_url['products'])?>" data-reveal="up" data-tilt>
 				<svg class="cat-icon"><use href="#i-all"/></svg>
 				<h2><?=o5_te('All products')?></h2>
 				<span><?=$product_total?> <?=o5_te('products')?></span>
@@ -374,7 +470,7 @@ if(!count($faq)) unset($nav['faq']);
 			<?php foreach($categories as $i => $category){
 				$id = $category['id_category'];
 				$count = $cat_counts[$id]; ?>
-			<a class="cat-tile" data-reveal="up" data-tilt style="--d:<?=($i + 1) * 110?>ms" <?php if($count){ ?>href="#products" data-filter-link="prod<?=$id?>"<?php }else{ ?>href="#contact"<?php } ?>>
+			<a class="cat-tile" data-reveal="up" data-tilt style="--d:<?=($i + 1) * 110?>ms" href="<?=$count ? o5_e(o5_url('products/'.$category['slug'])) : $c.'#contact'?>">
 				<svg class="cat-icon"><use href="#i-<?=o5_icon($category['title'], $cat_icons, 'layers')?>"/></svg>
 				<h2><?=o5_e($cat_names[$id])?></h2>
 				<span><?=$count ? $count.' '.o5_t('products') : o5_t('Made to order')?></span>
@@ -383,7 +479,9 @@ if(!count($faq)) unset($nav['faq']);
 		</div>
 	</div>
 </section>
+<?php } ?>
 
+<?php if($only === '' || $only === 'products'){ ?>
 <!-- ============ Products ============ -->
 <section id="products" class="products">
 	<div class="container">
@@ -424,17 +522,17 @@ if(!count($faq)) unset($nav['faq']);
 			$max_h = $size ? round($size[1] * 1.4) : 640; ?>
 		<article class="p-row<?=$n % 2 ? ' is-flip' : ''?>" data-cat="prod<?=$product['id_category']?>" data-search="<?=o5_e(mb_strtolower($product['title'].' '.$cat.' '.$text, 'UTF-8'))?>">
 			<div class="p-row-inner">
-				<a class="p-img<?=($size && $size[1] < 380) ? ' is-small' : ''?>" href="<?=$base.$big.o5_e($product['image'])?>" aria-label="<?=o5_te('View')?> <?=o5_e($name)?>" data-cursor="<?=o5_te('View')?>">
+				<a class="p-img<?=($size && $size[1] < 380) ? ' is-small' : ''?>" href="<?=o5_e(o5_url('product/'.$product['slug']))?>" aria-label="<?=o5_te('View')?> <?=o5_e($name)?>" data-cursor="<?=o5_te('View')?>">
 					<span class="p-disc" aria-hidden="true"></span>
 					<?php if(preg_match('/(\d{2,4})\s*$/', $product['title'], $ref)){ ?><span class="p-ghost" aria-hidden="true"><?=$ref[1]?></span><?php } ?>
 					<img src="<?=$base.$big.o5_e($product['image'])?>" alt="<?=o5_e($alt)?>" loading="lazy" style="--max-h:<?=$max_h?>px"<?php if($size){ ?> width="<?=$size[0]?>" height="<?=$size[1]?>"<?php } ?>>
 				</a>
 				<div class="p-text">
 					<span class="p-cat"><?=o5_e($cat)?></span>
-					<h3 class="p-name"><?=o5_e($name)?></h3>
+					<h3 class="p-name"><a href="<?=o5_e(o5_url('product/'.$product['slug']))?>"><?=o5_e($name)?></a></h3>
 					<p class="p-desc"><?=o5_e($text)?></p>
 					<div class="p-actions">
-						<button type="button" class="btn-more" data-more><span><?=o5_te('More')?></span><svg class="ic"><use href="#i-plus"/></svg></button>
+						<a class="btn-more" href="<?=o5_e(o5_url('product/'.$product['slug']))?>"><span><?=o5_te('More')?></span><svg class="ic"><use href="#i-plus"/></svg></a>
 						<button type="button" class="btn-link" data-ask><?=o5_te('Ask for a quote')?><svg class="ic"><use href="#i-arrow"/></svg></button>
 					</div>
 				</div>
@@ -444,14 +542,16 @@ if(!count($faq)) unset($nav['faq']);
 	</div>
 
 	<div class="container">
-		<p class="empty" id="productsEmpty" hidden><?=o5_te('No products match your search.')?> <a href="#contact"><?=o5_te('Ask us directly')?></a><?=o5_te(', we may have it in stock or make it to order.')?></p>
+		<p class="empty" id="productsEmpty" hidden><?=o5_te('No products match your search.')?> <a href="<?=$c?>#contact"><?=o5_te('Ask us directly')?></a><?=o5_te(', we may have it in stock or make it to order.')?></p>
 		<div class="more" id="loadMoreWrap">
 			<p><?=o5_te('Showing')?> <b id="shownCount"><?=$product_total?></b> <?=o5_te('of')?> <b id="totalCount"><?=$product_total?></b> <?=o5_te('products')?></p>
 			<button type="button" class="btn-more btn-wide" id="loadMore" hidden><span><?=o5_te('Load more products')?></span><svg class="ic"><use href="#i-plus"/></svg></button>
 		</div>
 	</div>
 </section>
+<?php } ?>
 
+<?php if($only === '' || $only === 'services'){ ?>
 <!-- ============ Services ============ -->
 <?php if(count($services)){ ?>
 <section id="services" class="services">
@@ -463,17 +563,31 @@ if(!count($faq)) unset($nav['faq']);
 		</div>
 		<ul class="service-grid">
 			<?php foreach($services as $i => $service){ ?>
-			<li class="service" data-reveal="up" style="--d:<?=($i % 4) * 90?>ms">
+			<li class="service" data-reveal="up" style="--d:<?=($i % 4) * 110?>ms;--i:<?=$i?>">
 				<span class="s-num" aria-hidden="true"><?=str_pad($i + 1, 2, '0', STR_PAD_LEFT)?></span>
 				<svg class="s-icon"><use href="#i-<?=$service_icons[$i % count($service_icons)]?>"/></svg>
 				<h3><?=o5_e($service)?></h3>
 			</li>
 			<?php } ?>
 		</ul>
+		<?php if(count($sectors)){ // one page per sector ?>
+		<h3 class="sec-title" data-reveal="up"><?=o5_te('Solutions by sector')?></h3>
+		<div class="sec-grid">
+			<?php $i = 0; foreach($sectors as $s){ ?>
+			<a class="sec-card" href="<?=o5_e(o5_url($s['path']))?>" data-reveal="up" style="--d:<?=($i++ % 4) * 80?>ms">
+				<svg class="ic"><use href="#i-<?=$s['icon']?>"/></svg>
+				<b><?=o5_e($s[$o5_lang]['name'])?></b>
+				<i aria-hidden="true"><svg class="ic"><use href="#i-arrow"/></svg></i>
+			</a>
+			<?php } ?>
+		</div>
+		<?php } ?>
 	</div>
 </section>
 <?php } ?>
+<?php } ?>
 
+<?php if($only === ''){ ?>
 <!-- ============ Parallax band: years + call to action ============ -->
 <section class="band">
 	<?php if($band_img){ ?><div class="band-media" aria-hidden="true"><img src="<?=$base.o5_e($band_img)?>" alt="<?=o5_e($company)?>" loading="lazy" data-parallax></div><?php } ?>
@@ -488,13 +602,15 @@ if(!count($faq)) unset($nav['faq']);
 			<?=o5_tag('<h2>', $hp['cta_title'], '</h2>')?>
 			<?=o5_tag('<p>', $hp['cta_text'], '</p>')?>
 			<div class="cta-actions">
-				<?=o5_tag('<a href="#contact" class="btn-solid btn-glow" data-magnetic><span>', $hp['cta_button'], '</span><svg class="ic"><use href="#i-arrow"/></svg></a>')?>
+				<?=o5_tag('<a href="'.$a.'#contact" class="btn-solid btn-glow" data-magnetic><span>', $hp['cta_button'], '</span><svg class="ic"><use href="#i-arrow"/></svg></a>')?>
 				<?php if($call_num){ ?><a href="<?=o5_e($call_href)?>" class="cta-call"><svg class="ic"><use href="#i-phone"/></svg><span class="tel"><?=o5_e($call_num)?></span></a><?php } ?>
 			</div>
 		</div>
 	</div>
 </section>
+<?php } ?>
 
+<?php if($only === '' || $only === 'about'){ ?>
 <!-- ============ About ============ -->
 <section id="about" class="about">
 	<div class="container about-grid<?=$about_main ? '' : ' no-img'?>">
@@ -522,7 +638,7 @@ if(!count($faq)) unset($nav['faq']);
 			<?php foreach($features as $i => $feature){ ?>
 			<li data-feature style="--d:<?=$i * 110?>ms">
 				<span class="f-num" aria-hidden="true"><?=str_pad($i + 1, 2, '0', STR_PAD_LEFT)?></span>
-				<span class="f-icon"><svg class="ic" viewBox="0 0 24 24"><path class="f-tick" d="M20 6 9 17l-5-5"/></svg></span>
+				<span class="f-icon"><svg class="ic" viewBox="0 0 24 24"><?php foreach($feature_icons[$feature['icon']] as $d){ ?><path class="f-draw" pathLength="1" d="<?=$d?>"/><?php } ?></svg></span>
 				<h3><?=o5_te($feature['title'])?></h3>
 				<?=o5_tag('<p>', $feature['text'], '</p>')?>
 				<span class="f-bar" aria-hidden="true"></span>
@@ -532,7 +648,9 @@ if(!count($faq)) unset($nav['faq']);
 	</div>
 	<?php } ?>
 </section>
+<?php } ?>
 
+<?php if($only === '' || $only === 'clients'){ ?>
 <!-- ============ Clients ============ -->
 <section id="clients" class="clients is-dark">
 	<div class="glow glow-a" aria-hidden="true"></div>
@@ -574,16 +692,72 @@ if(!count($faq)) unset($nav['faq']);
 		<?php } ?>
 	</div>
 </section>
+<?php } ?>
 
+<?php if($only === '' || $only === 'projects' || $only === 'clients'){ ?>
+<!-- ============ Completed projects ============ -->
+<?php if(count($projects)){ ?>
+<section id="projects" class="projects">
+	<div class="container">
+		<div class="row-title" data-reveal="up">
+			<div>
+				<p class="eyebrow"><?=o5_te('Our work')?></p>
+				<h2 class="h2"><?=o5_te('Completed projects')?></h2>
+			</div>
+			<p class="proj-total"><strong><span data-count="<?=count($projects)?>"><?=count($projects)?></span></strong> <?=o5_te(count($projects) == 1 ? 'project' : 'projects')?></p>
+		</div>
+		<p class="lead" data-reveal="up" style="--d:100ms"><?=o5_te('Kitchens, bakeries, butcher shops and supermarkets we equipped across Lebanon, from the first drawing to delivery.')?></p>
+		<?php if(count($project_count) > 1){ ?>
+		<div class="chips proj-chips" role="group" aria-label="<?=o5_te('Filter projects by sector')?>" data-reveal="up" style="--d:150ms">
+			<button type="button" class="chip is-active" data-proj-filter="all" aria-pressed="true"><?=o5_te('All')?> <small><?=count($projects)?></small></button>
+			<?php foreach($project_sectors as $key => $name){ if(empty($project_count[$key])) continue; ?>
+			<button type="button" class="chip" data-proj-filter="<?=o5_e($key)?>" aria-pressed="false"><svg class="ic"><use href="#<?=$project_icons[$key]?>"/></svg><?=o5_te($name)?> <small><?=$project_count[$key]?></small></button>
+			<?php } ?>
+		</div>
+		<?php } ?>
+		<div class="proj-grid">
+			<?php foreach($projects as $i => $pr){
+				$key = isset($project_sectors[$pr['sector']]) ? $pr['sector'] : 'other';
+				// one language per page
+				$p_title = trim((string)($is_ar ? $pr['title_ar'] : $pr['title']));
+				$p_place = trim((string)($is_ar ? $pr['place_ar'] : $pr['place']));
+				$p_text = trim((string)($is_ar ? $pr['description_ar'] : $pr['description']));
+				$p_cat = o5_t($project_sectors[$key]);
+				if($p_title === '') $p_title = $p_cat.($p_place !== '' ? ' · '.$p_place : '');
+				$p_photos = array();
+				foreach($pr['photo_list'] as $ph) $p_photos[] = $base.'uploads/projects/'.$ph;
+				$cover = $pr['photo_list'][0];
+				$cover_src = is_file('uploads/projects/thumb/'.$cover) ? 'uploads/projects/thumb/'.$cover : 'uploads/projects/'.$cover;
+			?>
+			<a href="<?=o5_e($p_photos[0])?>" class="proj-card" data-project data-sector="<?=o5_e($key)?>" data-photos="<?=o5_e(json_encode($p_photos))?>" data-title="<?=o5_e($p_title)?>" data-cat="<?=o5_e($p_cat.($p_place !== '' ? ' · '.$p_place : ''))?>" data-text="<?=o5_e($p_text)?>" data-reveal="up" style="--d:<?=min($i % 3, 2) * 110?>ms">
+				<span class="proj-img"><img src="<?=$base.o5_e($cover_src)?>" alt="<?=o5_e($p_title)?> — <?=o5_e($p_cat)?>" loading="lazy"></span>
+				<?php if(count($p_photos) > 1){ ?><span class="proj-count"><svg class="ic"><use href="#i-grid"/></svg><?=count($p_photos)?></span><?php } ?>
+				<span class="proj-body">
+					<span class="proj-cat"><svg class="ic"><use href="#<?=$project_icons[$key]?>"/></svg><?=o5_e($p_cat)?></span>
+					<span class="proj-title"><?=o5_e($p_title)?></span>
+					<?php if($p_place !== ''){ ?><span class="proj-place"><svg class="ic"><use href="#i-pin"/></svg><?=o5_e($p_place)?></span><?php } ?>
+				</span>
+			</a>
+			<?php } ?>
+		</div>
+	</div>
+</section>
+<?php } ?>
+<?php } ?>
+
+<?php if($only === ''){ ?>
 <!-- ============ Showroom ============ -->
 <?php if(count($showroom)){ ?>
 <section id="showroom" class="showroom">
 	<div class="container">
 		<div class="row-title" data-reveal="up">
 			<h2 class="h3"><?=o5_te(o5_or($hp['showroom_title'], 'Our showroom'))?></h2>
-			<div class="row-arrows">
-				<button type="button" class="arrow-btn" data-scroll="-1" aria-label="<?=o5_te('Previous photos')?>"><svg class="ic"><use href="#i-left"/></svg></button>
-				<button type="button" class="arrow-btn" data-scroll="1" aria-label="<?=o5_te('Next photos')?>"><svg class="ic"><use href="#i-right"/></svg></button>
+			<div class="row-side">
+				<a class="btn-link row-all" href="<?=o5_e($photos_url)?>"><?=o5_te('View all photos')?><svg class="ic"><use href="#i-arrow"/></svg></a>
+				<div class="row-arrows">
+					<button type="button" class="arrow-btn" data-scroll="-1" aria-label="<?=o5_te('Previous photos')?>"><svg class="ic"><use href="#i-left"/></svg></button>
+					<button type="button" class="arrow-btn" data-scroll="1" aria-label="<?=o5_te('Next photos')?>"><svg class="ic"><use href="#i-right"/></svg></button>
+				</div>
 			</div>
 		</div>
 		<p class="lead"><?=o5_te(o5_or($hp['showroom_text'], 'Visit our factory in Deir El Zahrani or our branch in Khalde: refrigerators, cooking lines and stainless-steel work, on display and ready to deliver.'))?></p>
@@ -599,7 +773,9 @@ if(!count($faq)) unset($nav['faq']);
 	</div>
 </section>
 <?php } ?>
+<?php } ?>
 
+<?php if($only === ''){ ?>
 <!-- ============ Videos & Facebook ============ -->
 <?php if(count($videos) || $fb_plugin){ ?>
 <section id="videos" class="videos is-dark<?=count($videos) ? '' : ' no-videos'?>">
@@ -610,26 +786,36 @@ if(!count($faq)) unset($nav['faq']);
 				<p class="eyebrow"><?=o5_te(o5_or($hp['videos_eyebrow'], 'Watch'))?></p>
 				<h2 class="h2"><?=o5_te(o5_or($hp['videos_title'], 'Our equipment in action'))?></h2>
 			</div>
+			<div class="row-side">
+			<?php if(count($videos)){ ?><a class="btn-link btn-link-light row-all" href="<?=o5_e($videos_url)?>"><?=o5_te('View all videos')?><svg class="ic"><use href="#i-arrow"/></svg></a><?php } ?>
 			<?php if(count($videos) > 1){ ?>
 			<div class="row-arrows">
 				<button type="button" class="arrow-btn" data-scroll="-1" data-track="videoTrack" aria-label="<?=o5_te('Previous videos')?>"><svg class="ic"><use href="#i-left"/></svg></button>
 				<button type="button" class="arrow-btn" data-scroll="1" data-track="videoTrack" aria-label="<?=o5_te('Next videos')?>"><svg class="ic"><use href="#i-right"/></svg></button>
 			</div>
 			<?php } ?>
+			</div>
 		</div>
 		<p class="lead" data-reveal="up" style="--d:100ms"><?=o5_te(o5_or($hp['videos_text'], 'Installations, new arrivals and our workshop, straight from our Facebook page.'))?></p>
 
 		<?php if(count($videos)){ ?>
 		<div class="video-track" id="videoTrack">
-			<?php foreach($videos as $i => $video){ ?>
+			<?php foreach($videos as $i => $video){
+				// one language per page: the Arabic title and text on /ar, the English ones on the English page
+				$v_title = $is_ar ? trim((string)@$video['title_ar']) : trim((string)$video['title']);
+				$v_text = $is_ar ? trim((string)@$video['description_ar']) : trim((string)$video['description']);
+				if($is_ar && $v_title === '' && trim((string)$video['title']) !== '' && o5_t($video['title']) !== $video['title']) $v_title = o5_t($video['title']);
+			?>
 			<figure class="video-card<?=$video['vertical'] ? ' is-vertical' : ''?>" data-reveal="up" style="--d:<?=min($i, 3) * 120?>ms">
 				<div class="video-frame" data-cursor="<?=o5_te('Play')?>">
-					<iframe src="<?=o5_e($video['src'])?>" title="<?=o5_e($video['title'])?>" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>
+					<iframe src="<?=o5_e($video['src'])?>" title="<?=o5_e($v_title !== '' ? $v_title : o5_t('Video'))?>" loading="lazy" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share" allowfullscreen></iframe>
 				</div>
+				<?php if($v_title !== '' || $v_text !== ''){ ?>
 				<figcaption>
-					<h3><?=o5_e($video['title'])?></h3>
-					<?=o5_tag('<p>', (string)$video['description'], '</p>')?>
+					<?php if($v_title !== ''){ ?><h3><?=o5_e($v_title)?></h3><?php } ?>
+					<?php if($v_text !== ''){ ?><p><?=nl2br(o5_e($v_text), false)?></p><?php } ?>
 				</figcaption>
+				<?php } ?>
 			</figure>
 			<?php } ?>
 		</div>
@@ -662,7 +848,9 @@ if(!count($faq)) unset($nav['faq']);
 	</div>
 </section>
 <?php } ?>
+<?php } ?>
 
+<?php if($only === '' || $only === 'faq'){ ?>
 <!-- ============ FAQ ============ -->
 <?php if(count($faq)){ ?>
 <section id="faq" class="faq">
@@ -679,7 +867,7 @@ if(!count($faq)) unset($nav['faq']);
 					<div class="faq-help-actions">
 						<?php if($call_num){ ?><a href="<?=o5_e($call_href)?>" class="faq-help-btn"><svg class="ic"><use href="#i-phone"/></svg><span class="tel"><?=o5_e($call_num)?></span></a><?php } ?>
 						<?php if($contact['whatsapp']){ ?><a href="https://wa.me/<?=$contact['whatsapp']?>" target="_blank" rel="noopener" class="faq-help-btn is-wa"><svg class="ic"><use href="#i-whatsapp"/></svg><span><?=o5_te('WhatsApp')?></span></a><?php } ?>
-						<a href="#contact" class="faq-help-btn is-light"><svg class="ic"><use href="#i-mail"/></svg><span><?=o5_te('Send a message')?></span></a>
+						<a href="<?=$c?>#contact" class="faq-help-btn is-light"><svg class="ic"><use href="#i-mail"/></svg><span><?=o5_te('Send a message')?></span></a>
 					</div>
 				</div>
 			</div>
@@ -695,9 +883,14 @@ if(!count($faq)) unset($nav['faq']);
 	</div>
 </section>
 <?php } ?>
+<?php } ?>
+
+<?php if(in_array($only, array('products', 'services', 'about', 'clients'))) include APPPATH.'views/option5/_why.php'; ?>
 
 <?php // the Arabic services and FAQ are on the Arabic page (yoursite/ar); the English page stays in English ?>
 
+<?php } ?>
+<?php if(!$is_gallery){ // the contact form closes the home page and the sector, category, product, export and guide pages ?>
 <!-- ============ Contact ============ -->
 <section id="contact" class="contact">
 	<div class="container">
@@ -751,7 +944,7 @@ if(!count($faq)) unset($nav['faq']);
 					<label class="field"><span><?=o5_te('Phone *')?></span><input type="tel" name="telephone" value="<?=$form['telephone']?>" autocomplete="tel" required dir="ltr"></label>
 					<label class="field"><span><?=o5_te('Company name *')?></span><input type="text" name="company" value="<?=$form['company']?>" autocomplete="organization" required></label>
 				</div>
-				<label class="field"><span><?=o5_te('Subject *')?></span><input type="text" name="subject" id="subjectField" value="<?=$form['subject']?>" required></label>
+				<label class="field"><span><?=o5_te('Subject *')?></span><input type="text" name="subject" id="subjectField" value="<?=$form['subject'] !== '' ? $form['subject'] : o5_e($ask_subject)?>" required></label>
 				<label class="field"><span><?=o5_te('Message *')?></span><textarea name="message" id="message" rows="5" required><?=$form['message']?></textarea></label>
 				<button type="submit" name="submit" class="btn-solid btn-glow"><span><?=o5_te('Send message')?></span><svg class="ic"><use href="#i-arrow"/></svg></button>
 			</form>
@@ -759,6 +952,7 @@ if(!count($faq)) unset($nav['faq']);
 	</div>
 </section>
 
+<?php } ?>
 </main>
 
 <!-- ============ Footer ============ -->
@@ -767,17 +961,21 @@ if(!count($faq)) unset($nav['faq']);
 		<div class="footer-col footer-brand">
 			<img src="<?=$base?>images/logo.png" width="222" height="40" alt="<?=o5_e($company)?>" loading="lazy">
 			<?=$is_ar ? o5_tag('<p>', $hp['footer_text_ar'], '</p>') : o5_tag('<p>', $hp['footer_text'], '</p>')?>
+			<a href="<?=$c?>#contact" class="btn-solid btn-glow footer-cta" data-magnetic><span><?=o5_te('Request a quote')?></span><svg class="ic"><use href="#i-arrow"/></svg></a>
 		</div>
 		<div class="footer-col" data-collapse>
 			<button type="button" class="footer-title" aria-expanded="false"><?=o5_te('Company')?><svg class="ic plus"><use href="#i-plus"/></svg><svg class="ic minus"><use href="#i-minus"/></svg></button>
 			<ul>
-				<li><a href="#about"><?=o5_te('About us')?></a></li>
-				<?php if(isset($nav['services'])){ ?><li><a href="#services"><?=o5_te('Services')?></a></li><?php } ?>
-				<li><a href="#clients"><?=o5_te('Our clients')?></a></li>
-				<?php if(count($showroom)){ ?><li><a href="#showroom"><?=o5_te('Showroom')?></a></li><?php } ?>
-				<?php if(isset($nav['videos'])){ ?><li><a href="#videos"><?=o5_te('Videos')?></a></li><?php } ?>
-				<?php if(isset($nav['faq'])){ ?><li><a href="#faq"><?=o5_te('FAQ')?></a></li><?php } ?>
-				<li><a href="#contact"><?=o5_te('Contact us')?></a></li>
+				<li><a href="<?=o5_e($nav_url['about'])?>"><?=o5_te('About us')?></a></li>
+				<?php if(isset($nav['services'])){ ?><li><a href="<?=o5_e($nav_url['services'])?>"><?=o5_te('Services')?></a></li><?php } ?>
+				<li><a href="<?=o5_e($nav_url['clients'])?>"><?=o5_te('Our clients')?></a></li>
+				<?php if(count($showroom)){ ?><?php } ?>
+				<li><a href="<?=o5_e($photos_url)?>"><?=o5_te('Photos')?></a></li>
+				<?php if(count($videos)){ ?><li><a href="<?=o5_e($videos_url)?>"><?=o5_te('Videos')?></a></li><?php }elseif(isset($nav['videos'])){ ?><li><a href="<?=$a?>#videos"><?=o5_te('Videos')?></a></li><?php } ?>
+				<?php if(isset($nav['faq'])){ ?><li><a href="<?=o5_e($nav_url['faq'])?>"><?=o5_te('FAQ')?></a></li><?php } ?>
+				<li><a href="<?=o5_e(o5_url('export'))?>"><?=o5_te('Delivery & export')?></a></li>
+				<li><a href="<?=o5_e(o5_url('guides'))?>"><?=o5_te('Guides')?></a></li>
+				<li><a href="<?=o5_e($nav_url['contact'])?>"><?=o5_te('Contact us')?></a></li>
 				<li><a href="<?=$is_ar ? $url_en : $url_ar?>" lang="<?=$is_ar ? 'en' : 'ar'?>" dir="<?=$is_ar ? 'ltr' : 'rtl'?>"><?=$is_ar ? 'English' : 'النسخة العربية'?></a></li>
 			</ul>
 		</div>
@@ -786,17 +984,17 @@ if(!count($faq)) unset($nav['faq']);
 			<ul>
 				<?php foreach($categories as $category){
 					if(!$cat_counts[$category['id_category']]) continue; ?>
-				<li><a href="#products" data-filter-link="prod<?=$category['id_category']?>"><?=o5_e($cat_names[$category['id_category']])?></a></li>
+				<li><a href="<?=o5_e(o5_url('products/'.$category['slug']))?>"><?=o5_e($cat_names[$category['id_category']])?></a></li>
 				<?php } ?>
 			</ul>
 		</div>
 		<div class="footer-col" data-collapse>
 			<button type="button" class="footer-title" aria-expanded="false"><?=o5_te('Contacts')?><svg class="ic plus"><use href="#i-plus"/></svg><svg class="ic minus"><use href="#i-minus"/></svg></button>
-			<ul>
-				<?php if($contact['phone']){ ?><li><a href="<?=o5_e($contact['phone_href'])?>" class="tel"><?=o5_e($contact['phone'])?></a></li><?php } ?>
-				<?php if($contact['mobile']){ ?><li><a href="<?=o5_e($contact['mobile_href'])?>" class="tel"><?=o5_e($contact['mobile'])?></a></li><?php } ?>
-				<?php if($contact['email']){ ?><li><a href="mailto:<?=o5_e($contact['email'])?>"><?=o5_e($contact['email'])?></a></li><?php } ?>
-				<?php foreach($locations as $location){ ?><li><span><?=o5_te($location)?></span></li><?php } ?>
+			<ul class="footer-contacts">
+				<?php if($contact['phone']){ ?><li><a href="<?=o5_e($contact['phone_href'])?>"><svg class="ic"><use href="#i-phone"/></svg><span class="tel"><?=o5_e($contact['phone'])?></span></a></li><?php } ?>
+				<?php if($contact['mobile']){ ?><li><a href="<?=o5_e($contact['mobile_href'])?>"><svg class="ic"><use href="#i-phone"/></svg><span class="tel"><?=o5_e($contact['mobile'])?></span></a></li><?php } ?>
+				<?php if($contact['email']){ ?><li><a href="mailto:<?=o5_e($contact['email'])?>"><svg class="ic"><use href="#i-mail"/></svg><?=o5_e($contact['email'])?></a></li><?php } ?>
+				<?php foreach($locations as $location){ ?><li><span><svg class="ic"><use href="#i-pin"/></svg><?=o5_te($location)?></span></li><?php } ?>
 			</ul>
 		</div>
 		<div class="footer-col footer-follow">
@@ -808,6 +1006,12 @@ if(!count($faq)) unset($nav['faq']);
 			</div>
 		</div>
 	</div>
+	<?php if(count($sectors)){ ?>
+	<nav class="container footer-sectors" aria-label="<?=o5_te('What we equip')?>">
+		<b><?=o5_te('What we equip')?></b>
+		<?php foreach($sectors as $s){ ?><a href="<?=o5_e(o5_url($s['path']))?>"><?=o5_e($s[$o5_lang]['name'])?></a><?php } ?>
+	</nav>
+	<?php } ?>
 	<div class="footer-giant" aria-hidden="true" data-reveal="up"><?php $giant = $is_ar ? 'طرابلسي' : 'TRABOULSIEST'; ?><span class="giant-glow"><?=$giant?></span><span class="giant-text"><?=$giant?></span></div>
 	<div class="copyright">
 		<p>&copy; <?=date('Y')?> <?=o5_te($hp['footer_copyright'])?><?php if($contact['phone']){ ?> &nbsp;|&nbsp; <?=o5_te('Tel:')?> <span class="tel"><?=o5_e($contact['phone'])?></span><?php } ?><?php if($contact['email']){ ?> &nbsp;|&nbsp; <?=o5_e($contact['email'])?><?php } ?></p>
@@ -818,7 +1022,7 @@ if(!count($faq)) unset($nav['faq']);
 <?php if($contact['whatsapp']){ ?>
 <a class="wa-float" href="https://wa.me/<?=$contact['whatsapp']?>" target="_blank" rel="noopener" aria-label="<?=o5_te('Chat with us on WhatsApp')?>"><svg class="ic"><use href="#i-whatsapp"/></svg></a>
 <?php } ?>
-<a class="to-top" id="toTop" href="#home" aria-label="<?=o5_te('Back to top')?>"><svg class="ic"><use href="#i-up"/></svg></a>
+<a class="to-top" id="toTop" href="#<?=$page === 'home' ? 'home' : 'top'?>" aria-label="<?=o5_te('Back to top')?>"><svg class="ic"><use href="#i-up"/></svg></a>
 
 <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-labelledby="lbTitle" hidden>
 	<div class="lb-box">
@@ -833,7 +1037,7 @@ if(!count($faq)) unset($nav['faq']);
 			<h3 id="lbTitle"<?=$is_ar ? ' dir="ltr"' : ''?>></h3>
 			<p id="lbDesc"></p>
 			<div class="lb-foot">
-				<button type="button" class="btn-solid" id="lbAsk"><span><?=o5_te('Ask about this product')?></span><svg class="ic"><use href="#i-arrow"/></svg></button>
+				<button type="button" class="btn-solid" id="lbAsk" data-label-product="<?=o5_te('Ask about this product')?>" data-label-project="<?=o5_te('Ask about a similar project')?>"><span><?=o5_te('Ask about this product')?></span><svg class="ic"><use href="#i-arrow"/></svg></button>
 				<span class="lb-count" id="lbCount"></span>
 			</div>
 		</div>

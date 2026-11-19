@@ -49,6 +49,27 @@ $route['option4'] = "home/old_design";
 $route['option5'] = "home/option5";
 $route['option5/ar'] = "home/option5/ar";
 $route['ar'] = "home/ar"; // the Arabic page
+$route['photos'] = "home/gallery/photos"; // every photo of the site
+$route['videos'] = "home/gallery/videos"; // every video
+$route['ar/photos'] = "home/gallery/photos/ar";
+$route['ar/videos'] = "home/gallery/videos/ar";
+// one page per sector, category and product, in English and in Arabic (controllers/home.php, texts in config/sectors.php)
+$route['([a-z-]+)-equipment'] = "home/sector/$1";
+$route['ar/([a-z-]+)-equipment'] = "home/sector/$1/ar";
+$route['products/([a-z0-9-]+)'] = "home/category/$1";
+$route['ar/products/([a-z0-9-]+)'] = "home/category/$1/ar";
+$route['product/([a-z0-9-]+)'] = "home/product/$1";
+$route['ar/product/([a-z0-9-]+)'] = "home/product/$1/ar";
+$route['export'] = "home/export";
+$route['ar/export'] = "home/export/ar";
+// one page per entry of the menu: a part of the home page shown on its own
+$route['(products|services|about|clients|projects|faq|contact)'] = "home/section/$1";
+$route['ar/(products|services|about|clients|projects|faq|contact)'] = "home/section/$1/ar";
+// the guides (texts in config/guides.php)
+$route['guides'] = "home/guides";
+$route['ar/guides'] = "home/guides/ar";
+$route['guides/([a-z0-9-]+)'] = "home/guide/$1";
+$route['ar/guides/([a-z0-9-]+)'] = "home/guide/$1/ar";
 $route['sitemap.xml'] = "seo/sitemap";
 $route['robots.txt'] = "seo/robots";
 $route['Traboulsi-Est'] = "seo/old"; // address of the old website

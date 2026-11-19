@@ -1,6 +1,7 @@
 <?php
 $e = function($s){ return htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8'); };
-if(!isset($info) || !is_array($info)) $info = array("title" => "", "video_url" => "", "description" => "");
+if(!isset($info) || !is_array($info)) $info = array();
+$info += array("title" => "", "title_ar" => "", "video_url" => "", "description" => "", "description_ar" => "");
 $embed = $this->fct->video_embed(set_value("video_url", $info["video_url"]));
 ?>
 <div class="container-fluid">
@@ -20,10 +21,17 @@ $embed = $this->fct->video_embed(set_value("video_url", $info["video_url"]));
 <p class="alert alert-info">Please complete the form below. Mandatory fields marked <em>*</em></p>
 <?php if(isset($id)){ ?><input type="hidden" name="id" value="<?= (int)$id; ?>" /><?php } ?>
 <fieldset>
-<label class="field-title">Title&nbsp;<em>*</em>:</label>
+<label class="field-title">Title (English)&nbsp;<em>*</em>:</label>
 <label>
 <input type="text" class="input-xxlarge" name="title" maxlength="250" value="<?= $e(set_value("title", $info["title"])); ?>" />
-<?= form_error("title", "<span class='text-error'>", "</span>"); ?>
+<br /><span style="font-size:12px;color:#888"><?= bo_t('videos_lang_help', 'The English title and text show on the English page, the Arabic ones on the Arabic page. Fill in at least one title.'); ?></span>
+<?= form_error("title", "<br /><span class='text-error'>", "</span>"); ?>
+</label>
+
+<label class="field-title">Title (Arabic):</label>
+<label>
+<input type="text" class="input-xxlarge" name="title_ar" maxlength="250" dir="rtl" value="<?= $e(set_value("title_ar", $info["title_ar"])); ?>" />
+<?= form_error("title_ar", "<br /><span class='text-error'>", "</span>"); ?>
 </label>
 
 <label class="field-title">Video link&nbsp;<em>*</em>:</label>
@@ -33,9 +41,14 @@ $embed = $this->fct->video_embed(set_value("video_url", $info["video_url"]));
 <?= form_error("video_url", "<br /><span class='text-error'>", "</span>"); ?>
 </label>
 
-<label class="field-title">Text under the video:</label>
+<label class="field-title">Text under the video (English):</label>
 <label>
 <textarea class="input-xxlarge" rows="3" name="description" maxlength="1000"><?= $e(set_value("description", $info["description"])); ?></textarea>
+</label>
+
+<label class="field-title">Text under the video (Arabic):</label>
+<label>
+<textarea class="input-xxlarge" rows="3" name="description_ar" maxlength="1000" dir="rtl"><?= $e(set_value("description_ar", $info["description_ar"])); ?></textarea>
 </label>
 
 <?php if($embed){ ?>

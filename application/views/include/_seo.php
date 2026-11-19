@@ -11,15 +11,28 @@ $seo = isset($home_page) ? $home_page : array();
 foreach ($seo_defaults as $name => $default) {
 	if (!isset($seo[$name]) || trim($seo[$name]) === '') $seo[$name] = $default;
 }
+// one language per page: the English page reads the English title and description
+if ((isset($page_lang) ? $page_lang : 'en') != 'ar') {
+	foreach (array('seo_title', 'seo_description') as $name) {
+		if (isset($seo[$name.'_en']) && trim($seo[$name.'_en']) !== '') $seo[$name] = $seo[$name.'_en'];
+	}
+}
+// a page other than the home page (photos, videos) brings its own title and description
+if (!empty($page_title)) $seo['seo_title'] = $page_title;
+if (!empty($page_description)) $seo['seo_description'] = $page_description;
 $seo_v = function($name) use ($seo){ return isset($seo[$name]) ? trim(preg_replace('/\s+/', ' ', (string)$seo[$name])) : ''; };
 $seo_e = function($name) use ($seo_v){ return htmlspecialchars($seo_v($name), ENT_QUOTES, 'UTF-8'); };
 $seo_lines = function($text){ return preg_split('/\s*\R\s*/u', trim((string)$text), -1, PREG_SPLIT_NO_EMPTY); };
 
 $site_url = base_url();
 $page_lang = isset($page_lang) ? $page_lang : 'en';
-$canonical = ($page_lang == 'ar' && isset($lang_urls['ar'])) ? $lang_urls['ar'] : $site_url;
+$canonical = isset($lang_urls[$page_lang]) ? $lang_urls[$page_lang] : $site_url;
 $is_preview = isset($page_url) && rtrim($page_url, '/') !== rtrim($canonical, '/');
 $og_image = is_file('uploads/about_us/530x400/tra.jpg') ? $site_url.'uploads/about_us/530x400/tra.jpg' : $site_url.'images/logo.png';
+// a product page is shared with the photo of the product
+$page_image = !empty($page_image) ? $page_image : $og_image;
+// the sector, category, product, export and guide pages bring their own structured data ($page_schema)
+$own_schema = isset($page_schema) && is_array($page_schema);
 $company = $seo_v('contact_company') !== '' ? $seo_v('contact_company') : 'Traboulsi Est. for Trading & Industry';
 $company_ar = $seo_v('topbar_name_ar') !== '' ? $seo_v('topbar_name_ar') : 'مؤسسة طرابلسي للتجارة والصناعة';
 ?>
@@ -50,13 +63,13 @@ $company_ar = $seo_v('topbar_name_ar') !== '' ? $seo_v('topbar_name_ar') : 'مؤ
 <meta property="og:locale" content="<?=$page_lang == 'ar' ? 'ar_LB' : 'en_US'?>" />
 <meta property="og:locale:alternate" content="<?=$page_lang == 'ar' ? 'en_US' : 'ar_LB'?>" />
 <meta property="og:url" content="<?=$canonical?>" />
-<meta property="og:image" content="<?=$og_image?>" />
+<meta property="og:image" content="<?=$page_image?>" />
 <meta property="og:title" content="<?=$seo_e('seo_title')?>" />
 <meta property="og:description" content="<?=$seo_e('seo_description')?>" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="<?=$seo_e('seo_title')?>" />
 <meta name="twitter:description" content="<?=$seo_e('seo_description')?>" />
-<meta name="twitter:image" content="<?=$og_image?>" />
+<meta name="twitter:image" content="<?=$page_image?>" />
 <link rel="shortcut icon" href="<?=$site_url?>favicon.ico" />
 <link href="<?=$site_url?>css_site/seo-section.css?v=<?=@filemtime('css_site/seo-section.css')?>" rel="stylesheet">
 <?php
@@ -96,7 +109,8 @@ $org = array(
 	'logo' => $site_url.'images/logo.png',
 	'image' => $og_image,
 	'address' => count($addresses) == 1 ? $addresses[0] : $addresses,
-	'areaServed' => array('@type' => 'Country', 'name' => 'Lebanon'),
+	// every Lebanese region, and export on request (the page yoursite/export)
+	'areaServed' => array(array('@type' => 'Country', 'name' => 'Lebanon'), array('@type' => 'Place', 'name' => 'Middle East')),
 	'knowsLanguage' => array('ar', 'en'),
 	'knowsAbout' => array_merge($services_ar, $services_en),
 	'priceRange' => '$$',
@@ -116,7 +130,9 @@ if (count($phones)) {
 }
 // the catalogue: one OfferCatalog per category with its products
 $catalog = array();
-if (!empty($categories)) {
+// the catalogue, the services and the FAQ belong to the home page, where visitors can read them
+$is_sub_page = !empty($page_title);
+if (!empty($categories) && !$is_sub_page) {
 	$by_cat = array();
 	foreach ((isset($products) ? $products : array()) as $product) $by_cat[$product['id_category']][] = $product;
 	foreach ($categories as $category) {
@@ -124,6 +140,7 @@ if (!empty($categories)) {
 		foreach ((isset($by_cat[$category['id_category']]) ? $by_cat[$category['id_category']] : array()) as $product) {
 			$items[] = array('@type' => 'Offer', 'itemOffered' => array(
 				'@type' => 'Product',
+				'url' => $site_url.($page_lang == 'ar' ? 'ar/' : '').'product/'.$product['slug'],
 				'name' => trim(html_entity_decode(strip_tags($product['title']), ENT_QUOTES, 'UTF-8')),
 				'image' => $site_url.'uploads/products/290x220/'.$product['image'],
 				'description' => isset($product['text_en']) && $product['text_en'] != '' ? $product['text_en'] : $product['alt'],
@@ -131,7 +148,7 @@ if (!empty($categories)) {
 				'brand' => array('@type' => 'Brand', 'name' => $company)
 			));
 		}
-		$entry = array('@type' => 'OfferCatalog', 'name' => trim(html_entity_decode(strip_tags($category['title']), ENT_QUOTES, 'UTF-8')));
+		$entry = array('@type' => 'OfferCatalog', 'url' => $site_url.($page_lang == 'ar' ? 'ar/' : '').'products/'.$category['slug'], 'name' => trim(html_entity_decode(strip_tags($category['title']), ENT_QUOTES, 'UTF-8')));
 		if (count($items)) $entry['itemListElement'] = $items;
 		$catalog[] = $entry;
 	}
@@ -158,8 +175,28 @@ $graph[] = array(
 	'inLanguage' => $page_lang == 'ar' ? 'ar' : array('ar', 'en'),
 	'isPartOf' => array('@id' => $site_url.'#website'),
 	'about' => array('@id' => $site_url.'#organization'),
-	'primaryImageOfPage' => $og_image
+	'primaryImageOfPage' => $page_image
 );
+// photo and video pages: a collection page with its breadcrumb (Home > Photos); the photo page lists its images
+if ($is_sub_page && !$own_schema) {
+	$last = count($graph) - 1;
+	$is_photos = isset($page) && $page == 'photos';
+	$graph[$last]['@type'] = $is_photos ? array('CollectionPage', 'ImageGallery') : 'CollectionPage';
+	$graph[$last]['inLanguage'] = $page_lang;
+	$graph[$last]['breadcrumb'] = array('@id' => $canonical.'#breadcrumb');
+	if ($is_photos) {
+		$images = array();
+		foreach ((isset($products) ? $products : array()) as $product) {
+			if ($product['image'] == '') continue;
+			$images[] = array('@type' => 'ImageObject', 'contentUrl' => $site_url.'uploads/products/290x220/'.$product['image'], 'name' => isset($product['alt']) ? $product['alt'] : trim(strip_tags($product['title'])));
+		}
+		if (count($images)) $graph[$last]['image'] = $images;
+	}
+	$graph[] = array('@type' => 'BreadcrumbList', '@id' => $canonical.'#breadcrumb', 'itemListElement' => array(
+		array('@type' => 'ListItem', 'position' => 1, 'name' => $page_lang == 'ar' ? 'الرئيسية' : 'Home', 'item' => $page_lang == 'ar' ? $site_url.'ar' : $site_url),
+		array('@type' => 'ListItem', 'position' => 2, 'name' => $is_photos ? ($page_lang == 'ar' ? 'الصور' : 'Photos') : ($page_lang == 'ar' ? 'الفيديو' : 'Videos'), 'item' => $canonical),
+	));
+}
 // the services, as a list Google can show
 $service_list = array();
 foreach ($services_ar as $i => $name) {
@@ -167,7 +204,7 @@ foreach ($services_ar as $i => $name) {
 		'@type' => 'Service', 'name' => $name, 'provider' => array('@id' => $site_url.'#organization'), 'areaServed' => array('@type' => 'Country', 'name' => 'Lebanon')
 	));
 }
-if (count($service_list)) $graph[] = array('@type' => 'ItemList', 'name' => $seo_v('seo_section_title'), 'itemListElement' => $service_list);
+if (count($service_list) && !$is_sub_page) $graph[] = array('@type' => 'ItemList', 'name' => $seo_v('seo_section_title'), 'itemListElement' => $service_list);
 // FAQ: "question | answer" per line
 $faq = array();
 foreach ($seo_lines($seo['seo_faq']) as $line) {
@@ -176,7 +213,12 @@ foreach ($seo_lines($seo['seo_faq']) as $line) {
 	if ($q === '' || $a === '') continue;
 	$faq[] = array('@type' => 'Question', 'name' => $q, 'acceptedAnswer' => array('@type' => 'Answer', 'text' => $a));
 }
-if (count($faq)) $graph[] = array('@type' => 'FAQPage', 'mainEntity' => $faq);
+if (count($faq) && !$is_sub_page) $graph[] = array('@type' => 'FAQPage', 'mainEntity' => $faq);
+// sector, category, product, export and guide pages: their own data (controllers/home.php)
+if ($own_schema) {
+	$graph[count($graph) - 1]['inLanguage'] = $page_lang;
+	$graph = array_merge($graph, $page_schema);
+}
 // texts typed years ago in the control panel are not always valid UTF-8: json_encode would give nothing
 $graph = array('@context' => 'https://schema.org', '@graph' => $graph);
 array_walk_recursive($graph, function(&$v){ if (is_string($v)) $v = (string) @iconv('UTF-8', 'UTF-8//IGNORE', $v); });

@@ -22,6 +22,8 @@ $config['home_page_sections'] = array(
 	'Google (browser tab & search results)' => array(
 		'seo_title' => array('Page title', 'textarea'),
 		'seo_description' => array('Description', 'textarea', 'Shown under the title in Google and when the site is shared on Facebook / WhatsApp'),
+		'seo_title_en' => array('Page title of the English page', 'textarea', 'The English page shows this title in Google; the title above is used by the Arabic page /ar. Leave empty to use the title above on both'),
+		'seo_description_en' => array('Description of the English page', 'textarea', 'English text under the title in Google for the English page. Leave empty to use the description above on both'),
 		'seo_keywords' => array('Keywords', 'textarea'),
 		'ga4_id' => array('Google Analytics 4 ID', 'text', 'The measurement ID from analytics.google.com, like G-XXXXXXXXXX. Leave empty to turn statistics off'),
 		'google_verification' => array('Google Search Console code', 'text', 'The content of the verification meta tag given by search.google.com/search-console (HTML tag method). Leave empty if the site is verified another way'),
@@ -38,10 +40,12 @@ $config['home_page_sections'] = array(
 		'topbar_name_ar' => array('Company name in Arabic', 'ar', 'The address, phones and Facebook / Instagram come from Contact Us'),
 	),
 	'Hero (top of the page, over the banner images)' => array(
+		'hero_style' => array('Banner background', 'choice', 'Designed: a drawing of a kitchen line in the colours of the site, no photo needed. Photos: the images of Banner, one after the other', array('' => 'Designed background (no photos)', 'photos' => 'Photos of Banner')),
 		'hero_eyebrow' => array('Small line above the title', 'text', 'Shown in small capital letters'),
 		'hero_title' => array('Title', 'title'),
 		'hero_text' => array('Text under the title', 'textarea'),
 		'hero_text_ar' => array('Arabic line', 'ar'),
+		'hero_line_en' => array('English line under the title (option 5 design)', 'textarea', 'Shown under the big title of the English page'),
 		'hero_title_ar' => array('Arabic title (option 5 design)', 'ar', 'Shown on the Arabic page instead of the English title. [words] show in red'),
 		'hero_button_1' => array('First button (opens the products)', 'text'),
 		'hero_button_2' => array('Second button (opens the contact form)', 'text'),

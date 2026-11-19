@@ -1,6 +1,12 @@
 <?php if ( ! defined('BASEPATH')) exit('No direct script access allowed');
 class Home extends CI_Controller {
 
+public function __construct()
+{
+parent::__construct();
+$this->load->helper('o5');
+}
+
 // the home page (English); the Arabic page is yoursite/ar
 public function index()
 {
@@ -26,10 +32,284 @@ public function ar()
 $this->_render($this->_page_data(),base_url().'ar','ar');
 }
 
+// the photo page (yoursite/photos, yoursite/ar/photos) and the video page (yoursite/videos, yoursite/ar/videos)
+public function gallery($page='photos',$lang='en')
+{
+$page=$page=='videos' ? 'videos' : 'photos';
+$lang=$lang=='ar' ? 'ar' : 'en';
+$data=$this->_page_data();
+$data['page']=$page;
+$data['page_path']=$page;
+$titles=array(
+	'photos'=>array('en'=>array('Photos | Traboulsi Est. - commercial kitchen equipment, Lebanon','Photos of the Traboulsi Est. showroom, completed projects and products: refrigerators, cooking lines and stainless-steel work made in Lebanon.'),
+		'ar'=>array('الصور | مؤسسة طرابلسي - تجهيز المطابخ والمطاعم في لبنان','صور معرض مؤسسة طرابلسي ومشاريعها المنجزة ومنتجاتها: برادات، خطوط طبخ وأعمال ستانلس ستيل مصنّعة في لبنان.')),
+	'videos'=>array('en'=>array('Videos | Traboulsi Est. - commercial kitchen equipment, Lebanon','Videos of Traboulsi Est.: installations, new equipment and our workshop in Deir El Zahrani, Lebanon.'),
+		'ar'=>array('الفيديو | مؤسسة طرابلسي - تجهيز المطابخ والمطاعم في لبنان','فيديوهات مؤسسة طرابلسي: تركيبات، معدات جديدة ومشغلنا في دير الزهراني، لبنان.')),
+);
+$data['page_title']=$titles[$page][$lang][0];
+$data['page_description']=$titles[$page][$lang][1];
+$this->_render($data,base_url().($lang=='ar' ? 'ar/' : '').$page,$lang);
+}
+
+// ---------- One page per sector, per category and per product (texts in config/sectors.php) ----------
+
+// yoursite/restaurant-equipment, yoursite/ar/restaurant-equipment ...
+public function sector($slug='',$lang='en')
+{
+$lang=$this->_lang($lang);
+$sectors=$this->_sectors();
+if(!isset($sectors[$slug])) return $this->_missing();
+$data=$this->_page_data();
+$sector=$sectors[$slug];
+$t=$sector[$lang];
+// its products: at most two of each type, the types in turn
+$by_type=array();
+foreach($data['products'] as $product){
+	if(preg_match('/'.$sector['products'].'/i',$product['title'])) $by_type[$product['type']][]=$product;
+}
+$picked=array();
+for($i=0;$i<2;$i++){
+	foreach($by_type as $items){ if(isset($items[$i]) && count($picked)<16) $picked[]=$items[$i]; }
+}
+// its clients (Our clients) and its completed projects
+$clients=array();
+foreach($data['client_groups'] as $groups){
+	foreach($groups as $group){
+		if(preg_match('/'.$sector['clients'].'/i',$group['title'])) $clients=array_merge($clients,$group['names']);
+	}
+}
+$projects=array();
+foreach($data['projects'] as $project){ if($project['sector']==$sector['project']) $projects[]=$project; }
+$url=o5_url($sector['path']);
+$schema=array(
+	array('@type'=>'Service','@id'=>$url.'#service','name'=>$t['h1'],'description'=>$t['description'],'url'=>$url,'serviceType'=>$t['name'],
+		'provider'=>array('@id'=>base_url().'#organization'),'areaServed'=>array('@type'=>'Country','name'=>'Lebanon')),
+	$this->_crumbs(array($t['name']=>$url)),
+	$this->_faq($t['faq']),
+);
+$data['sector']=$sector;
+$data['page_products']=$picked;
+$data['sector_clients']=array_values(array_unique($clients));
+$data['sector_projects']=$projects;
+$this->_subpage($data,$lang,'sector',$sector['path'],$t['title'],$t['description'],$schema);
+}
+
+// yoursite/products/refrigeration-cold-display
+public function category($slug='',$lang='en')
+{
+$lang=$this->_lang($lang);
+$data=$this->_page_data();
+$category=NULL;
+foreach($data['categories'] as $row){ if($row['slug']===$slug && $data['cat_counts'][$row['id_category']]) $category=$row; }
+if(!$category) return $this->_missing();
+$this->config->load('sectors',TRUE);
+$texts=$this->config->item('category_pages','sectors');
+$name=o5_t(o5_title($category['title']));
+$default=$lang=='ar' ? array('معدات احترافية للمشاريع الغذائية، توريد وتركيب وصيانة من مؤسسة طرابلسي.',$name.' في لبنان') : array('Professional equipment for food businesses, supplied, installed and serviced by Traboulsi Est.',$name.' in Lebanon');
+$t=isset($texts[$slug][$lang]) ? $texts[$slug][$lang] : $default;
+$items=array();
+foreach($data['products'] as $product){ if($product['id_category']==$category['id_category']) $items[]=$product; }
+$url=o5_url('products/'.$slug);
+$list=array();
+foreach($items as $i=>$product) $list[]=array('@type'=>'ListItem','position'=>$i+1,'name'=>o5_pname(o5_name($product['title'])),'url'=>o5_url('product/'.$product['slug']));
+$schema=array(
+	array('@type'=>'CollectionPage','@id'=>$url.'#page','url'=>$url,'name'=>$t[1],'description'=>$t[0],'about'=>array('@id'=>base_url().'#organization')),
+	array('@type'=>'ItemList','name'=>$name,'numberOfItems'=>count($list),'itemListElement'=>$list),
+	$this->_crumbs(array(o5_t('Products')=>o5_url().'#products',$name=>$url)),
+);
+$category['name']=$name;
+$category['h1']=$t[1];
+$category['text']=$t[0];
+$data['category_page']=$category;
+$data['page_products']=$items;
+$this->_subpage($data,$lang,'category','products/'.$slug,$t[1].($lang=='ar' ? ' | مؤسسة طرابلسي' : ' | Traboulsi Est.'),$t[0],$schema);
+}
+
+// yoursite/product/showcase-fridge-108
+public function product($slug='',$lang='en')
+{
+$lang=$this->_lang($lang);
+$data=$this->_page_data();
+$product=NULL;
+foreach($data['products'] as $row){ if($row['slug']===$slug) $product=$row; }
+if(!$product) return $this->_missing();
+$name=o5_pname(o5_name($product['title']));
+$cat=o5_t(o5_title($product['category']));
+$text=$lang=='ar' ? $product['text_ar'] : $product['text_en'];
+// the same type first, then the rest of its category
+$same=array();
+$others=array();
+foreach($data['products'] as $row){
+	if($row['id_products']==$product['id_products'] || $row['id_category']!=$product['id_category']) continue;
+	if($row['type']===$product['type']) $same[]=$row; else $others[]=$row;
+}
+// the sectors that use it
+$fits=array();
+foreach($this->_sectors() as $sector){ if(preg_match('/'.$sector['products'].'/i',$product['title'])) $fits[]=$sector; }
+$big=is_file('uploads/products/600x455/'.$product['image']) ? 'uploads/products/600x455/' : 'uploads/products/290x220/';
+$url=o5_url('product/'.$slug);
+$description=trim($text.' '.($lang=='ar' ? 'توريد وتركيب وصيانة من مؤسسة طرابلسي في كل لبنان.' : 'Supplied, installed and serviced by Traboulsi Est. all over Lebanon.'));
+// no price is published (sold on quotation), so the product is described without an offer
+$schema=array(
+	array('@type'=>'Product','@id'=>$url.'#product','name'=>$name,'url'=>$url,'image'=>base_url().$big.$product['image'],'description'=>$description,'category'=>$cat,
+		'sku'=>preg_match('/(\d{1,4})\s*$/',$product['title'],$m) ? 'TR-'.$m[1] : 'TR-P'.$product['id_products'],
+		'brand'=>array('@type'=>'Brand','name'=>'Traboulsi Est.')),
+	$this->_crumbs(array(o5_t('Products')=>o5_url().'#products',$cat=>o5_url('products/'.$product['cat_slug']),$name=>$url)),
+);
+$product['name']=$name;
+$product['cat_name']=$cat;
+$product['text']=$text;
+$product['src']=$big.$product['image'];
+$data['product_page']=$product;
+$data['page_products']=array_slice(array_merge($same,$others),0,8);
+$data['product_sectors']=$fits;
+$data['page_image']=base_url().$big.$product['image'];
+$this->_subpage($data,$lang,'product','product/'.$slug,$name.' | '.$cat.' | '.($lang=='ar' ? 'مؤسسة طرابلسي - لبنان' : 'Traboulsi Est. Lebanon'),$description,$schema);
+}
+
+// yoursite/export: delivery in Lebanon and outside it
+public function export($lang='en')
+{
+$lang=$this->_lang($lang);
+$this->config->load('sectors',TRUE);
+$t=$this->config->item('export_page','sectors');
+$t=$t[$lang];
+$data=$this->_page_data();
+$data['export_page']=$t;
+$this->_subpage($data,$lang,'export','export',$t['title'],$t['description'],array($this->_crumbs(array($t['name']=>o5_url('export'))),$this->_faq($t['faq'])));
+}
+
+// yoursite/guides: the list of the guides
+public function guides($lang='en')
+{
+$this->guide('',$lang);
+}
+
+// yoursite/guides/restaurant-kitchen-checklist (texts in config/guides.php)
+public function guide($slug='',$lang='en')
+{
+$lang=$this->_lang($lang);
+$this->config->load('guides',TRUE);
+$guides=$this->config->item('guides','guides');
+if($slug!=='' && !isset($guides[$slug])) return $this->_missing();
+$data=$this->_page_data();
+$data['guides']=$guides;
+$list_name=o5_t('Guides');
+if($slug===''){
+	$title=$lang=='ar' ? 'دليل تجهيز المطاعم والمحلات الغذائية في لبنان | مؤسسة طرابلسي' : 'Guides: equipping a restaurant, bakery or shop in Lebanon | Traboulsi Est.';
+	$description=$lang=='ar' ? 'مقالات عملية من مؤسسة طرابلسي: كيف تجهّز مطبخ مطعم، كيف تختار برّاد العرض أو غرفة التبريد، وما الذي يجب معرفته قبل شراء المعدات.' : 'Practical guides by Traboulsi Est.: how to equip a restaurant kitchen, how to choose a display fridge or a cold room, and what to know before buying equipment.';
+	return $this->_subpage($data,$lang,'guides','guides',$title,$description,array($this->_crumbs(array($list_name=>o5_url('guides')))));
+}
+$g=$guides[$slug][$lang];
+$url=o5_url('guides/'.$slug);
+$schema=array(
+	array('@type'=>'Article','@id'=>$url.'#article','headline'=>$g['h1'],'description'=>$g['description'],'inLanguage'=>$lang,'mainEntityOfPage'=>$url,
+		'datePublished'=>$guides[$slug]['date'],'dateModified'=>$guides[$slug]['date'],'image'=>base_url().'images/logo.png',
+		'author'=>array('@id'=>base_url().'#organization'),'publisher'=>array('@id'=>base_url().'#organization')),
+	$this->_crumbs(array($list_name=>o5_url('guides'),$g['h1']=>$url)),
+);
+$data['guide']=$guides[$slug];
+$data['guide_slug']=$slug;
+$this->_subpage($data,$lang,'guide','guides/'.$slug,$g['title'],$g['description'],$schema);
+}
+
+// yoursite/products, /services, /about, /clients, /projects, /faq, /contact: one part of the home page as a page of its own
+public function section($name='',$lang='en')
+{
+$lang=$this->_lang($lang);
+$ar=$lang=='ar';
+$pages=array(
+	'products'=>$ar ? array('المنتجات','منتجاتنا: معدات المطابخ والتبريد التجاري','برادات، خطوط طبخ، ماكينات تحضير، تجهيزات سوبرماركت وأعمال ستانلس ستيل: كل ما نصنّعه ونورّده، مرتّباً حسب الفئة.','المنتجات: معدات مطابخ وبرادات تجارية وستانلس ستيل | مؤسسة طرابلسي - لبنان')
+		: array('Products','Our products: commercial kitchen and refrigeration equipment','Refrigerators, cooking lines, preparation machines, supermarket equipment and stainless-steel work: everything we manufacture and supply, sorted by category.','Products: Commercial Kitchen Equipment, Refrigeration & Stainless Steel | Traboulsi Est. Lebanon'),
+	'services'=>$ar ? array('خدماتنا','خدماتنا: تصنيع وتوريد وتركيب وصيانة','من دراسة المشروع إلى التصنيع والتركيب والصيانة: فريق واحد يجهّز مطعمك أو محلّك أو مطبخ مؤسستك.','خدماتنا: تجهيز مطاعم وفنادق وسوبرماركت، تصنيع وتركيب وصيانة | مؤسسة طرابلسي')
+		: array('Services','Our services: manufacturing, supply, installation and maintenance','From the study of the project to manufacturing, installation and maintenance: one team equips your restaurant, your shop or the kitchen of your institution.','Services: Kitchen Fit-out, Manufacturing, Installation & Maintenance | Traboulsi Est. Lebanon'),
+	'about'=>$ar ? array('من نحن','من نحن: مؤسسة طرابلسي للتجارة والصناعة','نصنّع البرادات والشوايات وأعمال الستانلس ستيل في دير الزهراني منذ 1982، ونجهّز المشاريع الغذائية في كل لبنان.','من نحن | مؤسسة طرابلسي للتجارة والصناعة - دير الزهراني، لبنان منذ 1982')
+		: array('About','About Traboulsi Est. for Trading & Industry','Manufacturing refrigeration, grills and stainless-steel equipment in Deir El Zahrani since 1982, and equipping food businesses all over Lebanon.','About Us | Traboulsi Est. for Trading & Industry, Lebanon, since 1982'),
+	'clients'=>$ar ? array('عملاؤنا','عملاؤنا: مستشفيات ومطاعم وسوبرماركت جهّزناها','مجموعة من المؤسسات والمحلات التي وثقت بنا في مختلف المناطق اللبنانية.','عملاؤنا: مستشفيات، مطاعم وسوبرماركت جهّزتها مؤسسة طرابلسي في لبنان')
+		: array('Our clients','Our clients: hospitals, restaurants and supermarkets we equipped','A selection of the institutions and businesses that trusted us across Lebanon.','Our Clients: Hospitals, Restaurants & Supermarkets Equipped by Traboulsi Est. in Lebanon'),
+	'projects'=>$ar ? array('مشاريعنا','مشاريعنا المنفّذة','مطابخ وأفران وملاحم وسوبرماركت جهّزناها في كل لبنان، من أول رسمة حتى التسليم.','مشاريعنا المنفّذة: مطابخ ومحلات جهّزتها مؤسسة طرابلسي في لبنان')
+		: array('Projects','Completed projects','Kitchens, bakeries, butcher shops and supermarkets we equipped across Lebanon, from the first drawing to delivery.','Completed Projects: Kitchens & Shops Equipped by Traboulsi Est. in Lebanon'),
+	'faq'=>$ar ? array('أسئلة شائعة','أسئلة شائعة عن تجهيز المطابخ والمحلات','إجابات عمّا يسأله عملاؤنا كثيراً عن التصنيع والتسليم والصيانة وعروض الأسعار.','أسئلة شائعة: تجهيز المطاعم، التصنيع حسب الطلب، الصيانة | مؤسسة طرابلسي')
+		: array('FAQ','Frequently asked questions','Answers to what our customers ask most about manufacturing, delivery, maintenance and quotations.','FAQ: Kitchen Equipment, Custom Manufacturing & Maintenance | Traboulsi Est. Lebanon'),
+	'contact'=>$ar ? array('اتصل بنا','اتصل بنا: اطلب عرض سعر','أرسل لنا رسالة أو زر أحد فرعينا في دير الزهراني وخلدة. فريقنا يتواصل معك قريباً.','اتصل بنا واطلب عرض سعر | مؤسسة طرابلسي - دير الزهراني وخلدة، لبنان')
+		: array('Contact','Contact us: request a quote','Send us a message or visit one of our two branches, in Deir El Zahrani and Khalde. Our team will get back to you shortly.','Contact Us & Request a Quote | Traboulsi Est., Deir El Zahrani & Khalde, Lebanon'),
+);
+if(!isset($pages[$name])) return $this->_missing();
+$data=$this->_page_data();
+if($name=='projects' && !count($data['projects'])) return $this->_missing();
+$t=$pages[$name];
+$schema=array($this->_crumbs(array($t[0]=>o5_url($name))));
+if($name=='faq'){
+	// the questions typed in the control panel (the built-in ones when the field is empty)
+	$this->config->load('seo_defaults',TRUE);
+	$defaults=$this->config->item('seo_defaults','seo_defaults');
+	$key=$ar ? 'seo_faq' : 'seo_faq_en';
+	$schema[]=$this->_faq(o5_faq(trim($data['home_page'][$key])!=='' ? $data['home_page'][$key] : $defaults[$key]));
+}
+$data['section']=$name;
+$data['section_page']=array('name'=>$t[0],'h1'=>$t[1],'lead'=>$t[2]);
+$this->_subpage($data,$lang,'section',$name,$t[3],$t[2],$schema);
+}
+
+// the sector pages of config/sectors.php, each with its address
+function _sectors()
+{
+$this->config->load('sectors',TRUE);
+$sectors=$this->config->item('sector_pages','sectors');
+foreach($sectors as $slug=>$sector) $sectors[$slug]['path']=$slug.'-equipment';
+return $sectors;
+}
+
+// the language of the page, also given to the helpers (o5_t, o5_pname, o5_url)
+function _lang($lang)
+{
+$lang=$lang=='ar' ? 'ar' : 'en';
+$this->config->load('site_lang',TRUE);
+$GLOBALS['o5_lang']=$lang;
+$GLOBALS['o5_dict']=$this->config->item('site_lang_ar','site_lang');
+$GLOBALS['o5_pdict']=(array)$this->config->item('site_products_ar','site_lang');
+return $lang;
+}
+
+// "Home / Products / Showcase Fridge 108" for Google
+function _crumbs($trail)
+{
+$items=array(array('@type'=>'ListItem','position'=>1,'name'=>o5_t('Home'),'item'=>o5_url()));
+foreach($trail as $name=>$url) $items[]=array('@type'=>'ListItem','position'=>count($items)+1,'name'=>$name,'item'=>$url);
+return array('@type'=>'BreadcrumbList','itemListElement'=>$items);
+}
+
+// questions and answers for Google
+function _faq($list)
+{
+$faq=array();
+foreach($list as $qa) $faq[]=array('@type'=>'Question','name'=>$qa[0],'acceptedAnswer'=>array('@type'=>'Answer','text'=>$qa[1]));
+return array('@type'=>'FAQPage','mainEntity'=>$faq);
+}
+
+// a page other than the home page: its own address, title, description and structured data
+function _subpage($data,$lang,$page,$path,$title,$description,$schema=array())
+{
+$data['page']=$page;
+$data['page_path']=$path;
+$data['page_title']=$title;
+$data['page_description']=$description;
+$data['page_schema']=$schema;
+$this->_render($data,base_url().($lang=='ar' ? 'ar/' : '').$path,$lang);
+}
+
+// an address that does not exist: a real 404
+function _missing()
+{
+set_status_header(404);
+$this->load->view('404');
+}
+
 function _render($data,$page_url,$lang='en')
 {
 $data['page_url']=$page_url;
 $data['lang']=$lang;
+$data['sectors']=$this->_sectors();
 $data['content']='option5/home';
 $this->load->view('option5/template',$data);
 }
@@ -45,6 +325,7 @@ $data['banner']=$this->fct->getAll("banner","sort_order");
 $data['categories']=$this->fct->getAll('category','sort_order'); 
 $data['products']=$this->fct->getAll('products','sort_order'); 
 $data['videos']=$this->fct->get_videos();
+$data['projects']=$this->fct->get_projects();
 /*$data['menuactive'] ="home";
 $data['tab']=0;
 $data['countries']=$this->fct->getAll("countries","title");*/
@@ -86,7 +367,11 @@ foreach($data['products'] as $product){
 }
 $data['products']=array();
 $data['cat_counts']=array();
-foreach($data['categories'] as $category){
+$slugs=array();
+foreach($data['categories'] as $k=>$category){
+	// the address of its page: yoursite/products/refrigeration-cold-display
+	$category['slug']=o5_slug($category['title']);
+	$data['categories'][$k]['slug']=$category['slug'];
 	$items=isset($by_cat[$category['id_category']]) ? $by_cat[$category['id_category']] : array();
 	$data['cat_counts'][$category['id_category']]=count($items);
 	foreach($items as $k=>$item){
@@ -94,6 +379,10 @@ foreach($data['categories'] as $category){
 		$items[$k]['alt']=$this->_product_alt($item,$items[$k]['category']);
 		$items[$k]['text_en']=$this->_desc_part($item['description'],'en');
 		$items[$k]['text_ar']=$this->_desc_part($item['description'],'ar');
+		// the address of its page (yoursite/product/showcase-fridge-108) and its type ("Showcase Fridge")
+		$items[$k]['slug']=o5_product_slug($item['title'],$item['id_products'],$slugs);
+		$items[$k]['cat_slug']=$category['slug'];
+		$items[$k]['type']=trim(preg_replace('/\s\d{1,4}\s*$/','',o5_name($item['title'])));
 	}
 	$data['products']=array_merge($data['products'],$items);
 }

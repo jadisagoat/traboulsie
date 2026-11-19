@@ -5,10 +5,6 @@ window.location='<?= base_url(); ?>back_office/control/delete/'+id;
 return false;
 }
 
-function completed(id){
-var sel="#complete_"+id;
-$(sel).load('<?= base_url(); ?>back_office/home/complete_todo/'+id);	
-}
 
 $(function(){
 $('#table-1').tableDnD({

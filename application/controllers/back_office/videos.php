@@ -1,5 +1,5 @@
 <?php
-// Videos shown on the home page (option 4): a Facebook or YouTube link per video.
+// Videos shown on the home page: a Facebook or YouTube link per video, with a title and text in English (English page) and Arabic (/ar).
 // Login and form tokens are checked for the whole back office in hooks/Security_guard.php
 class Videos extends CI_Controller{
 
@@ -86,12 +86,21 @@ $this->form_validation->set_message("valid_video","Paste the link of a Facebook 
 return false;
 }
 
+// a title in English, in Arabic, or both
+public function one_title($title){
+if(trim((string)$title) !== "" || trim((string)$this->input->post("title_ar")) !== "") return true;
+$this->form_validation->set_message("one_title","Write the title in English, in Arabic, or both.");
+return false;
+}
+
 public function submit(){
 if(!$this->_priv("write")) redirect(base_url()."back_office/home/dashboard");
 $id=(int)$this->input->post("id");
-$this->form_validation->set_rules("title","Title","trim|required|max_length[250]");
+$this->form_validation->set_rules("title","Title","trim|max_length[250]|callback_one_title");
+$this->form_validation->set_rules("title_ar","Arabic title","trim|max_length[250]");
 $this->form_validation->set_rules("video_url","Video link","trim|required|max_length[500]|callback_valid_video");
 $this->form_validation->set_rules("description","Text","trim|max_length[1000]");
+$this->form_validation->set_rules("description_ar","Arabic text","trim|max_length[1000]");
 if($this->form_validation->run() == FALSE){
 	$data["title"]="Add / Edit video";
 	if($id){
@@ -105,7 +114,9 @@ if($this->form_validation->run() == FALSE){
 $_data=array(
 	"title"=>$this->input->post("title"),
 	"video_url"=>$this->input->post("video_url"),
+	"title_ar"=>$this->input->post("title_ar"),
 	"description"=>$this->input->post("description"),
+	"description_ar"=>$this->input->post("description_ar"),
 );
 if($id){
 	$_data["updated_date"]=date("Y-m-d H:i:s");
