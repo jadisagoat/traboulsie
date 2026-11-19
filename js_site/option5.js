@@ -201,6 +201,26 @@
 		menuToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
 		menuToggle.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
 		doc.body.classList.toggle('is-locked', open);
+		if (!open) setDrop(null);
+	}
+	// phone menu: Products / Services open their list on tap, one at a time
+	function setDrop(li) {
+		if (!nav) return;
+		Array.prototype.forEach.call(nav.querySelectorAll('.has-drop'), function (el) {
+			var on = el === li && !el.classList.contains('is-expanded');
+			el.classList.toggle('is-expanded', on);
+			var a = el.querySelector('a');
+			if (a) a.setAttribute('aria-expanded', on ? 'true' : 'false');
+		});
+	}
+	if (nav) {
+		nav.addEventListener('click', function (e) {
+			if (window.innerWidth > 960) return;
+			var a = e.target.closest ? e.target.closest('.has-drop > a') : null;
+			if (!a || !nav.contains(a)) return;
+			e.preventDefault();
+			setDrop(a.parentNode);
+		});
 	}
 	if (menuToggle) {
 		menuToggle.addEventListener('click', function () { setMenu(menuToggle.getAttribute('aria-expanded') !== 'true'); });

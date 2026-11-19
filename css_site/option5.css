@@ -899,12 +899,19 @@ html:not(.motion) .f-draw,.motion-off .f-draw{stroke-dashoffset:0}
 }
 @media (max-width:960px){
 	.burger{display:block}
+	/* backdrop-filter would make .navbar the containing block of the fixed menu panel and crush it */
+	.navbar{background:#fff;-webkit-backdrop-filter:none;backdrop-filter:none}
 	.nav{position:fixed;inset:0;top:var(--nav-top,118px);background:#fff;flex-direction:column;align-items:stretch;justify-content:flex-start;padding:10px 24px 30px;overflow:auto;opacity:0;visibility:hidden;transform:translateY(-10px);transition:opacity .25s,transform .25s,visibility .25s}
 	.nav.is-open{opacity:1;visibility:visible;transform:none}
 	.nav>ul{flex-direction:column;align-items:stretch;gap:0}
 	.nav>ul>li>a,.site-header.is-scrolled .nav>ul>li>a{height:auto;padding:16px 0;border-bottom:1px solid var(--line);font-size:15px;width:100%}
 	.nav>ul>li>a.is-active{box-shadow:none;color:var(--red)}
-	.nav .caret{display:none}
+	/* sub-menus closed until their title is tapped */
+	.nav>ul>li.has-drop>a{display:flex;justify-content:space-between;align-items:center}
+	.nav .caret{display:block;margin:0;font-size:18px;color:var(--muted);transition:transform .25s,color .25s}
+	.nav>ul>li.is-expanded>a .caret{transform:rotate(180deg);color:var(--red)}
+	.js .nav>ul>li.has-drop:not(.is-expanded)>.drop{display:none}
+	.nav .drop{box-shadow:none;background:var(--tile);border-radius:10px;margin:8px 0 4px}
 	.drop{position:static;opacity:1;visibility:visible;transform:none;border:0;padding:4px 0 10px;min-width:0}
 	.drop a{padding:9px 14px;font-size:15px}
 	.nav-mobile-info{display:flex;flex-direction:column;gap:10px;margin-top:24px;font-size:17px}

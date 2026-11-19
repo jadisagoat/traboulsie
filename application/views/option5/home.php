@@ -272,6 +272,7 @@ if(!count($faq)) unset($nav['faq']);
 						<a href="<?=o5_e($nav_url['services'])?>"<?=$only === 'services' ? ' class="is-active"' : ''?>><?=o5_te($label)?><svg class="ic caret"><use href="#i-down"/></svg></a>
 						<div class="drop">
 							<ul>
+								<li><a href="<?=o5_e($nav_url['services'])?>"><?=o5_te('All services')?></a></li>
 								<?php foreach($sectors as $s){ ?>
 								<li><a href="<?=o5_e(o5_url($s['path']))?>"><?=o5_e($s[$o5_lang]['name'])?></a></li>
 								<?php } ?>

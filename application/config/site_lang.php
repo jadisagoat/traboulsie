@@ -36,6 +36,7 @@ $config['site_lang_ar'] = array(
 	'Search products' => 'البحث في المنتجات',
 	'Open menu' => 'فتح القائمة',
 	'All products' => 'كل المنتجات',
+	'All services' => 'كل الخدمات',
 	'products' => 'منتج',
 	'Made to order' => 'يُصنّع حسب الطلب',
 	'Our products' => 'منتجاتنا',
