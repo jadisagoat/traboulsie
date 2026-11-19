@@ -332,7 +332,9 @@ if(isset($hero_cards) && is_array($hero_cards)){
 		$file = trim((string)$card['file']);
 		if($file === '' || !is_file($file)) continue;
 		$is_video = (bool)preg_match('/\.(mp4|webm)$/i', $file);
-		$type = $is_video ? 'video' : ($card['type'] == 'portrait' ? 'portrait' : 'photo');
+		// a video that fills the card like a portrait (a person speaking): framed and labelled as a portrait, played as a video
+		$as_portrait = $is_video && $card['type'] == 'portrait';
+		$type = $as_portrait ? 'portrait' : ($is_video ? 'video' : ($card['type'] == 'portrait' ? 'portrait' : 'photo'));
 		$poster = trim((string)$card['poster']);
 		$link = trim((string)$card['link']);
 		$hero_stage[] = array(
@@ -342,6 +344,7 @@ if(isset($hero_cards) && is_array($hero_cards)){
 			'label' => $is_ar && trim((string)$card['label_ar']) !== '' ? $card['label_ar'] : o5_t($card['label_en']),
 			'href' => $link === '' ? $a.'#videos' : (preg_match('#^https?://#i', $link) ? $link : ($link[0] == '#' ? $a.$link : o5_url(ltrim($link, '/')))),
 		);
+		if($as_portrait) $hero_stage[count($hero_stage) - 1]['video'] = $file;
 	}
 }elseif(count($hero_reels) == 3){
 	// the table of the cards is not there yet: the three factory loops and two photos of the catalogue

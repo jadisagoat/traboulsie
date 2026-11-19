@@ -119,7 +119,8 @@ class Site_content extends CI_Model {
 			$reel = function($file, $en, $ar){ return array('type' => 'video', 'file' => 'images/hero-reels/'.$file.'.mp4', 'poster' => 'images/hero-reels/'.$file.'.jpg', 'label_en' => $en, 'label_ar' => $ar, 'link' => '#videos'); };
 			if (is_file('images/hero-reels/laser.mp4')) $rows[] = $reel('laser', 'Laser cutting', 'القصّ بالليزر');
 			if (is_file('uploads/products/600x455/complete-set-179.jpg')) $rows[] = array('type' => 'photo', 'file' => 'uploads/products/600x455/complete-set-179.jpg', 'poster' => '', 'label_en' => 'Cooking lines', 'label_ar' => 'خطوط الطبخ', 'link' => 'product/complete-cooking-line-179');
-			if (is_file('images/hero-reels/team.jpg')) $rows[] = array('type' => 'portrait', 'file' => 'images/hero-reels/team.jpg', 'poster' => '', 'label_en' => 'Our team', 'label_ar' => 'فريقنا', 'link' => 'about');
+			if (is_file('images/hero-reels/owner.mp4')) $rows[] = array('type' => 'portrait', 'file' => 'images/hero-reels/owner.mp4', 'poster' => 'images/hero-reels/owner.jpg', 'label_en' => 'Company owner', 'label_ar' => 'صاحب المؤسسة', 'link' => 'about');
+			elseif (is_file('images/hero-reels/team.jpg')) $rows[] = array('type' => 'portrait', 'file' => 'images/hero-reels/team.jpg', 'poster' => '', 'label_en' => 'Our team', 'label_ar' => 'فريقنا', 'link' => 'about');
 			if (is_file('images/hero-reels/grills.mp4')) $rows[] = $reel('grills', 'Grills & hoods', 'الشوايات والهود');
 			if (is_file('images/hero-reels/finishing.mp4')) $rows[] = $reel('finishing', 'Finishing', 'التشطيب');
 		} elseif ($type == 'translations') {

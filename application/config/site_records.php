@@ -85,7 +85,7 @@ $config['site_records'] = array(
 		'list' => array('label_en', 'type'),
 		'required' => array('label_en'),
 		'fields' => array(
-			'type' => array('Kind of card', 'choice', 'Video: a short silent loop. Photo of a product: shown whole on white. Photo that fills the card: a person, the factory, a project', array('video' => 'Video', 'photo' => 'Photo of a product (white background)', 'portrait' => 'Photo that fills the card')),
+			'type' => array('Kind of card', 'choice', 'Video: a short silent loop. Photo of a product: shown whole on white. Photo that fills the card: a person, the factory, a project', array('video' => 'Video', 'photo' => 'Photo of a product (white background)', 'portrait' => 'Photo or video that fills the card (a person)')),
 			'file' => array('Video or photo', 'file', 'mp4 video (short, without sound, about 320 × 392, under 2 MB) or jpg / png / webp photo. Tall format, like a phone screen'),
 			'poster' => array('Still picture of the video', 'file', 'Only for a video: a jpg of its first second, shown while it loads and blended in the background'),
 			'label_en' => array('Label (English)', 'text'),

@@ -280,7 +280,7 @@ if(!$this->db->table_exists('projects')){
 		`description_ar` text,
 		`photos` text,
 		PRIMARY KEY (`id_projects`)
-	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+	) ENGINE=InnoDB DEFAULT CHARSET=utf8");
 }
 if(!$this->db->where('name','projects')->count_all_results('content_type')){
 	$now=date('Y-m-d H:i:s');
