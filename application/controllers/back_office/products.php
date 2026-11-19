@@ -90,6 +90,8 @@ $this->load->view("back_office/template",$data);
 else
 {
 $_data["title"]=$this->input->post("title");
+// the Arabic name (the column is added by models/site_content.php the first time the website is opened)
+if($this->db->field_exists("title_ar","products")) $_data["title_ar"]=trim((string)$this->input->post("title_ar"));
 $_data["id_category"]=$this->input->post("category"); 
 if(!empty($_FILES["image"]["name"])) {
 if($this->input->post("id")!=""){

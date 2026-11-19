@@ -7,7 +7,7 @@
 $o5_lang = isset($lang) && $lang == 'ar' ? 'ar' : 'en';
 $is_ar = $o5_lang == 'ar';
 $this->config->load('site_lang', TRUE);
-$o5_dict = $this->config->item('site_lang_ar', 'site_lang');
+$o5_dict = isset($site_dict) ? $site_dict : $this->config->item('site_lang_ar', 'site_lang'); // with the translations of the control panel
 // the view runs inside a function: the translation helper reads the language from $GLOBALS
 $GLOBALS['o5_lang'] = $o5_lang;
 $GLOBALS['o5_dict'] = $o5_dict;
@@ -276,7 +276,7 @@ if(!count($faq)) unset($nav['faq']);
 								<li><a href="<?=o5_e(o5_url($s['path']))?>"><?=o5_e($s[$o5_lang]['name'])?></a></li>
 								<?php } ?>
 								<li><a href="<?=o5_e(o5_url('export'))?>"><?=o5_te('Delivery & export')?></a></li>
-								<li><a href="<?=o5_e(o5_url('guides'))?>"><?=o5_te('Guides')?></a></li>
+								<?php if(!isset($guide_count) || $guide_count){ ?><li><a href="<?=o5_e(o5_url('guides'))?>"><?=o5_te('Guides')?></a></li><?php } ?>
 							</ul>
 						</div>
 					</li>
@@ -325,29 +325,38 @@ foreach(array('laser' => 'Laser cutting', 'grills' => 'Grills & hoods', 'finishi
 ?>
 <?php // the background of the banner: a designed drawing (default) or the photos of back office > Banner
 $hero_designed = !isset($hp['hero_style']) || $hp['hero_style'] !== 'photos' || !count($hero_images); ?>
-<?php // the stage of the banner: the factory loops and two photos of the catalogue, turning one after the other
+<?php // the stage of the banner: the cards of control panel > Pages & texts > Banner cards, turning one after the other
 $hero_stage = array();
-if(count($hero_reels) == 3){
+if(isset($hero_cards) && is_array($hero_cards)){
+	foreach($hero_cards as $card){
+		$file = trim((string)$card['file']);
+		if($file === '' || !is_file($file)) continue;
+		$is_video = (bool)preg_match('/\.(mp4|webm)$/i', $file);
+		$type = $is_video ? 'video' : ($card['type'] == 'portrait' ? 'portrait' : 'photo');
+		$poster = trim((string)$card['poster']);
+		$link = trim((string)$card['link']);
+		$hero_stage[] = array(
+			'type' => $type,
+			'src' => $file,
+			'poster' => ($poster !== '' && is_file($poster)) ? $poster : ($is_video ? '' : $file),
+			'label' => $is_ar && trim((string)$card['label_ar']) !== '' ? $card['label_ar'] : o5_t($card['label_en']),
+			'href' => $link === '' ? $a.'#videos' : (preg_match('#^https?://#i', $link) ? $link : ($link[0] == '#' ? $a.$link : o5_url(ltrim($link, '/')))),
+		);
+	}
+}elseif(count($hero_reels) == 3){
+	// the table of the cards is not there yet: the three factory loops and two photos of the catalogue
 	$stage_photos = array();
 	foreach(array('Complete Cooking Line' => 'Cooking lines', 'Showcase Fridge 111' => 'Display fridges') as $needle => $label){
 		foreach($products as $product){
 			if(stripos($product['title'], $needle) === FALSE) continue;
 			$dir = is_file('uploads/products/600x455/'.$product['image']) ? 'uploads/products/600x455/' : 'uploads/products/290x220/';
-			$stage_photos[] = array('type' => 'photo', 'src' => $dir.$product['image'], 'label' => $label, 'href' => o5_url('product/'.$product['slug']));
+			$stage_photos[] = array('type' => 'photo', 'src' => $dir.$product['image'], 'poster' => '', 'label' => o5_t($label), 'href' => o5_url('product/'.$product['slug']));
 			break;
 		}
 	}
-	// video, photo, video, photo, video
 	foreach($hero_reels as $i => $reel){
-		$hero_stage[] = array('type' => 'video', 'src' => 'images/hero-reels/'.$reel['file'].'.mp4', 'poster' => 'images/hero-reels/'.$reel['file'].'.jpg', 'label' => $reel['label'], 'href' => $a.'#videos');
+		$hero_stage[] = array('type' => 'video', 'src' => 'images/hero-reels/'.$reel['file'].'.mp4', 'poster' => 'images/hero-reels/'.$reel['file'].'.jpg', 'label' => o5_t($reel['label']), 'href' => $a.'#videos');
 		if(isset($stage_photos[$i])) $hero_stage[] = $stage_photos[$i];
-	}
-	// the owner of the company, a short candid loop cut from a reel of the Facebook page (images/hero-reels/owner.mp4, owner.jpg its first frame),
-	// takes the middle of the stage, where it starts, instead of the second photo
-	if(is_file('images/hero-reels/owner.jpg') && count($hero_stage) == 5){
-		$owner_card = array('type' => 'portrait', 'src' => 'images/hero-reels/owner.jpg', 'poster' => 'images/hero-reels/owner.jpg', 'label' => 'Company owner', 'href' => $a.'#about');
-		if(is_file('images/hero-reels/owner.mp4')) $owner_card['video'] = 'images/hero-reels/owner.mp4';
-		$hero_stage = array($hero_stage[0], $hero_stage[1], $owner_card, $hero_stage[2], $hero_stage[4]);
 	}
 }
 $stage_first = (int)floor(count($hero_stage) / 2); ?>
@@ -358,7 +367,7 @@ $stage_first = (int)floor(count($hero_stage) / 2); ?>
 		<?php } ?>
 		<?php if($hero_designed && count($hero_stage)){ // the video or photo of the card in front, large and softened behind the whole banner ?>
 		<div class="stage-ambient" aria-hidden="true">
-			<?php foreach($hero_stage as $i => $card){ ?><span class="is-<?=$card['type']?><?=$i == $stage_first ? ' is-active' : ''?>"<?php if($card['type'] != 'photo'){ ?> style="background-image:url(<?=$base.o5_e($card['poster'])?>)"<?php } ?>><?php if($card['type'] == 'video'){ ?><video muted loop playsinline preload="none" data-src="<?=$base.o5_e($card['src'])?>"></video><?php } ?></span><?php } ?>
+			<?php foreach($hero_stage as $i => $card){ ?><span class="is-<?=$card['type']?><?=$i == $stage_first ? ' is-active' : ''?>"<?php if($card['type'] != 'photo' && $card['poster'] !== ''){ ?> style="background-image:url(<?=$base.o5_e($card['poster'])?>)"<?php } ?>><?php if($card['type'] == 'video'){ ?><video muted loop playsinline preload="none" data-src="<?=$base.o5_e($card['src'])?>"></video><?php } ?></span><?php } ?>
 		</div>
 		<?php } ?>
 	</div>
@@ -376,14 +385,14 @@ $stage_first = (int)floor(count($hero_stage) / 2); ?>
 	<div class="hero-reels hero-stage" id="heroStage" role="group" aria-label="<?=o5_te('From our factory')?>" style="--n:<?=count($hero_stage)?>">
 		<div class="stage-cards">
 			<?php foreach($hero_stage as $i => $card){ ?>
-			<a href="<?=o5_e($card['href'])?>" class="stage-card is-<?=$card['type']?><?=$i == $stage_first ? ' is-active' : ''?>" style="--p:<?=$i - $stage_first?>;--ap:<?=abs($i - $stage_first)?>;z-index:<?=10 - abs($i - $stage_first)?>" aria-label="<?=o5_te($card['label'])?>">
+			<a href="<?=o5_e($card['href'])?>" class="stage-card is-<?=$card['type']?><?=$i == $stage_first ? ' is-active' : ''?>" style="--p:<?=$i - $stage_first?>;--ap:<?=abs($i - $stage_first)?>;z-index:<?=10 - abs($i - $stage_first)?>" aria-label="<?=o5_e($card['label'])?>">
 				<?php if($card['type'] == 'video' || isset($card['video'])){ ?>
-				<video muted loop playsinline preload="none" poster="<?=$base.o5_e($card['poster'])?>" data-src="<?=$base.o5_e(isset($card['video']) ? $card['video'] : $card['src'])?>" aria-hidden="true"></video>
+				<video muted loop playsinline preload="none"<?php if($card['poster'] !== ''){ ?> poster="<?=$base.o5_e($card['poster'])?>"<?php } ?> data-src="<?=$base.o5_e(isset($card['video']) ? $card['video'] : $card['src'])?>" aria-hidden="true"></video>
 				<?php }else{ ?>
-				<img src="<?=$base.o5_e($card['src'])?>" alt="<?=o5_te($card['label'])?>" loading="lazy">
+				<img src="<?=$base.o5_e($card['src'])?>" alt="<?=o5_e($card['label'])?>" loading="lazy">
 				<?php } ?>
 				<span class="stage-kind" aria-hidden="true"><svg class="ic"><use href="#i-<?=$card['type'] == 'video' ? 'play' : ($card['type'] == 'portrait' ? 'check' : 'image')?>"/></svg></span>
-				<span class="stage-label"><b><?=str_pad($i + 1, 2, '0', STR_PAD_LEFT)?></b><?=o5_te($card['label'])?></span>
+				<span class="stage-label"><b><?=str_pad($i + 1, 2, '0', STR_PAD_LEFT)?></b><?=o5_e($card['label'])?></span>
 				<span class="stage-bar" aria-hidden="true"><i></i></span>
 			</a>
 			<?php } ?>
@@ -974,7 +983,7 @@ $stage_first = (int)floor(count($hero_stage) / 2); ?>
 				<?php if(count($videos)){ ?><li><a href="<?=o5_e($videos_url)?>"><?=o5_te('Videos')?></a></li><?php }elseif(isset($nav['videos'])){ ?><li><a href="<?=$a?>#videos"><?=o5_te('Videos')?></a></li><?php } ?>
 				<?php if(isset($nav['faq'])){ ?><li><a href="<?=o5_e($nav_url['faq'])?>"><?=o5_te('FAQ')?></a></li><?php } ?>
 				<li><a href="<?=o5_e(o5_url('export'))?>"><?=o5_te('Delivery & export')?></a></li>
-				<li><a href="<?=o5_e(o5_url('guides'))?>"><?=o5_te('Guides')?></a></li>
+				<?php if(!isset($guide_count) || $guide_count){ ?><li><a href="<?=o5_e(o5_url('guides'))?>"><?=o5_te('Guides')?></a></li><?php } ?>
 				<li><a href="<?=o5_e($nav_url['contact'])?>"><?=o5_te('Contact us')?></a></li>
 				<li><a href="<?=$is_ar ? $url_en : $url_ar?>" lang="<?=$is_ar ? 'en' : 'ar'?>" dir="<?=$is_ar ? 'ltr' : 'rtl'?>"><?=$is_ar ? 'English' : 'النسخة العربية'?></a></li>
 			</ul>

@@ -99,6 +99,26 @@ $icons = array(
             <?php }
         } ?>
 
+        <?php if ($this->session->userdata('level') != 0) {
+            // content edited in controllers/back_office/records.php and page_texts.php
+            $pages_menu = array(
+                'records/index/hero_cards'   => array('Banner cards', 'bx-carousel', 'hero_cards'),
+                'records/index/sectors'      => array('Sector pages', 'bx-buildings', 'sectors'),
+                'records/index/guides'       => array('Guides (articles)', 'bx-book-open', 'guides'),
+                'page_texts'                 => array('Texts of the pages', 'bx-text', 'page_texts'),
+                'records/index/translations' => array('Arabic translations', 'bx-globe', 'translations'),
+            ); ?>
+        <li class="menu-header small text-uppercase"><span class="menu-header-text">Pages &amp; texts</span></li>
+        <?php foreach ($pages_menu as $path => $item) {
+            $is_current = $menu_left_seg1 == 'page_texts' ? $item[2] == 'page_texts' : ($menu_left_seg1 == 'records' && $this->uri->segment(4) == $item[2]); ?>
+        <li class="menu-item <?php if ($is_current) echo "active"; ?>">
+            <a href="<?php echo base_url(); ?>back_office/<?php echo $path; ?>" class="menu-link">
+                <i class="menu-icon tf-icons bx <?php echo $item[1]; ?>"></i>
+                <div><?php echo $item[0]; ?></div>
+            </a>
+        </li>
+        <?php } } ?>
+
         <li class="menu-header small text-uppercase"><span class="menu-header-text">System</span></li>
 
         <li class="menu-item <?php if ($menu_left_seg1 == "settings") echo "active"; ?>">

@@ -14,6 +14,9 @@ if(!function_exists('o5_e')){
 	// product name on the Arabic page: "Showcase Fridge 108" -> "برّاد عرض 108"
 	function o5_pname($s){
 		if(empty($GLOBALS['o5_lang']) || $GLOBALS['o5_lang'] != 'ar') return $s;
+		// the Arabic name typed in the control panel, then the built-in name of the type of product
+		$key = strtolower(preg_replace('/\s+/', ' ', trim((string)$s)));
+		if(!empty($GLOBALS['o5_ptitles'][$key])) return $GLOBALS['o5_ptitles'][$key];
 		$num = preg_match('/\s(\d{1,4})\s*$/', $s, $m) ? $m[1] : '';
 		$type = trim($num === '' ? $s : substr($s, 0, -strlen($m[0])));
 		foreach($GLOBALS['o5_pdict'] as $en => $ar){ if(strcasecmp($en, $type) == 0) return trim($ar.' '.$num); }

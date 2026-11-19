@@ -10,9 +10,9 @@
 </ul>
 </div>
 <div class="hundred pull-left">
-<form action="<?= base_url(); ?>back_office/home_page/submit" method="post" class="middle-forms">
-<p class="alert alert-info">All the texts of the home page, in the order they appear on the website. Leave a field empty to hide it on the website.<br />
-Images are managed in Banner, About Us and Products.</p>
+<form action="<?= isset($form_action) ? $form_action : base_url()."back_office/home_page/submit"; ?>" method="post" class="middle-forms">
+<p class="alert alert-info"><? if(isset($form_help)){ echo $form_help; } else { ?>All the texts of the home page, in the order they appear on the website. Leave a field empty to hide it on the website.<br />
+Images are managed in Banner, About Us and Products.<? } ?></p>
 <? if($this->session->userdata("success_message")){ ?>
 <div class="alert alert-success">
 <?= $this->session->userdata("success_message"); ?>

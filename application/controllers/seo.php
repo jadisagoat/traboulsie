@@ -38,14 +38,13 @@ class Seo extends CI_Controller {
 		}
 		// one page per sector, the export page, the guides, one page per category and one per product: each in English and in Arabic
 		$this->load->helper('o5');
-		$this->config->load('sectors', TRUE);
-		$this->config->load('guides', TRUE);
+		$this->load->model('site_content');
 		$pages = array();
-		foreach ($this->config->item('sector_pages', 'sectors') as $slug => $sector) $pages[] = array($slug.'-equipment', '0.9', '');
+		foreach ($this->site_content->sectors() as $sector) $pages[] = array($sector['path'], '0.9', '');
 		foreach (array('products', 'services', 'about', 'clients', 'faq', 'contact') as $part) $pages[] = array($part, '0.8', '');
 		$pages[] = array('export', '0.6', '');
 		$pages[] = array('guides', '0.6', '');
-		foreach ($this->config->item('guides', 'guides') as $slug => $guide) $pages[] = array('guides/'.$slug, '0.7', '');
+		foreach ($this->site_content->guides() as $slug => $guide) $pages[] = array('guides/'.$slug, '0.7', '');
 		// the same addresses as controllers/home.php: the categories in their order, then the products of each that have a photo
 		$by_cat = array();
 		foreach ($products as $product) {

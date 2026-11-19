@@ -31,6 +31,7 @@ if(isset($id)){?>
 <?
 } else {
 $info["title"] = "";
+$info["title_ar"] = "";
 $info["category"] = "";
 $info["image"] = "";
 $info["description"] = "";
@@ -55,6 +56,12 @@ $info["description"] = "";
 <label>
 <input type="text" class="input-xxlarge" name="title" value="<?= set_value("title",$info["title"]); ?>" />
 <?= form_error("title","<span class='text-error'>","</span>"); ?>
+</label>
+<label class="field-title">Title in Arabic:
+</label>
+<label>
+<input type="text" class="input-xxlarge" name="title_ar" dir="rtl" value="<?= htmlspecialchars((string)set_value("title_ar",isset($info["title_ar"]) ? $info["title_ar"] : ""),ENT_QUOTES,"UTF-8",false); ?>" />
+<br /><span style="font-size:12px;color:#888">The name shown on the Arabic pages, with the number of the product: برّاد عرض 108. Left empty, the English name is shown</span>
 </label>
 <label class="field-title">Category&nbsp;<em>*</em>:
 </label>

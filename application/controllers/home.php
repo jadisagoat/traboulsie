@@ -5,6 +5,7 @@ public function __construct()
 {
 parent::__construct();
 $this->load->helper('o5');
+$this->load->model('site_content'); // sector pages, guides, banner cards, translations and page texts of the control panel
 }
 
 // the home page (English); the Arabic page is yoursite/ar
@@ -104,6 +105,8 @@ foreach($data['categories'] as $row){ if($row['slug']===$slug && $data['cat_coun
 if(!$category) return $this->_missing();
 $this->config->load('sectors',TRUE);
 $texts=$this->config->item('category_pages','sectors');
+// the title and text typed in the control panel (Category), the built-in ones otherwise
+if(!empty($category['h1_'.$lang]) && !empty($category['text_'.$lang])) $texts[$slug][$lang]=array($category['text_'.$lang],$category['h1_'.$lang]);
 $name=o5_t(o5_title($category['title']));
 $default=$lang=='ar' ? array('معدات احترافية للمشاريع الغذائية، توريد وتركيب وصيانة من مؤسسة طرابلسي.',$name.' في لبنان') : array('Professional equipment for food businesses, supplied, installed and serviced by Traboulsi Est.',$name.' in Lebanon');
 $t=isset($texts[$slug][$lang]) ? $texts[$slug][$lang] : $default;
@@ -171,9 +174,7 @@ $this->_subpage($data,$lang,'product','product/'.$slug,$name.' | '.$cat.' | '.($
 public function export($lang='en')
 {
 $lang=$this->_lang($lang);
-$this->config->load('sectors',TRUE);
-$t=$this->config->item('export_page','sectors');
-$t=$t[$lang];
+$t=$this->site_content->export_page($lang);
 $data=$this->_page_data();
 $data['export_page']=$t;
 $this->_subpage($data,$lang,'export','export',$t['title'],$t['description'],array($this->_crumbs(array($t['name']=>o5_url('export'))),$this->_faq($t['faq'])));
@@ -189,8 +190,7 @@ $this->guide('',$lang);
 public function guide($slug='',$lang='en')
 {
 $lang=$this->_lang($lang);
-$this->config->load('guides',TRUE);
-$guides=$this->config->item('guides','guides');
+$guides=$this->site_content->guides();
 if($slug!=='' && !isset($guides[$slug])) return $this->_missing();
 $data=$this->_page_data();
 $data['guides']=$guides;
@@ -218,26 +218,13 @@ public function section($name='',$lang='en')
 {
 $lang=$this->_lang($lang);
 $ar=$lang=='ar';
-$pages=array(
-	'products'=>$ar ? array('المنتجات','منتجاتنا: معدات المطابخ والتبريد التجاري','برادات، خطوط طبخ، ماكينات تحضير، تجهيزات سوبرماركت وأعمال ستانلس ستيل: كل ما نصنّعه ونورّده، مرتّباً حسب الفئة.','المنتجات: معدات مطابخ وبرادات تجارية وستانلس ستيل | مؤسسة طرابلسي - لبنان')
-		: array('Products','Our products: commercial kitchen and refrigeration equipment','Refrigerators, cooking lines, preparation machines, supermarket equipment and stainless-steel work: everything we manufacture and supply, sorted by category.','Products: Commercial Kitchen Equipment, Refrigeration & Stainless Steel | Traboulsi Est. Lebanon'),
-	'services'=>$ar ? array('خدماتنا','خدماتنا: تصنيع وتوريد وتركيب وصيانة','من دراسة المشروع إلى التصنيع والتركيب والصيانة: فريق واحد يجهّز مطعمك أو محلّك أو مطبخ مؤسستك.','خدماتنا: تجهيز مطاعم وفنادق وسوبرماركت، تصنيع وتركيب وصيانة | مؤسسة طرابلسي')
-		: array('Services','Our services: manufacturing, supply, installation and maintenance','From the study of the project to manufacturing, installation and maintenance: one team equips your restaurant, your shop or the kitchen of your institution.','Services: Kitchen Fit-out, Manufacturing, Installation & Maintenance | Traboulsi Est. Lebanon'),
-	'about'=>$ar ? array('من نحن','من نحن: مؤسسة طرابلسي للتجارة والصناعة','نصنّع البرادات والشوايات وأعمال الستانلس ستيل في دير الزهراني منذ 1982، ونجهّز المشاريع الغذائية في كل لبنان.','من نحن | مؤسسة طرابلسي للتجارة والصناعة - دير الزهراني، لبنان منذ 1982')
-		: array('About','About Traboulsi Est. for Trading & Industry','Manufacturing refrigeration, grills and stainless-steel equipment in Deir El Zahrani since 1982, and equipping food businesses all over Lebanon.','About Us | Traboulsi Est. for Trading & Industry, Lebanon, since 1982'),
-	'clients'=>$ar ? array('عملاؤنا','عملاؤنا: مستشفيات ومطاعم وسوبرماركت جهّزناها','مجموعة من المؤسسات والمحلات التي وثقت بنا في مختلف المناطق اللبنانية.','عملاؤنا: مستشفيات، مطاعم وسوبرماركت جهّزتها مؤسسة طرابلسي في لبنان')
-		: array('Our clients','Our clients: hospitals, restaurants and supermarkets we equipped','A selection of the institutions and businesses that trusted us across Lebanon.','Our Clients: Hospitals, Restaurants & Supermarkets Equipped by Traboulsi Est. in Lebanon'),
-	'projects'=>$ar ? array('مشاريعنا','مشاريعنا المنفّذة','مطابخ وأفران وملاحم وسوبرماركت جهّزناها في كل لبنان، من أول رسمة حتى التسليم.','مشاريعنا المنفّذة: مطابخ ومحلات جهّزتها مؤسسة طرابلسي في لبنان')
-		: array('Projects','Completed projects','Kitchens, bakeries, butcher shops and supermarkets we equipped across Lebanon, from the first drawing to delivery.','Completed Projects: Kitchens & Shops Equipped by Traboulsi Est. in Lebanon'),
-	'faq'=>$ar ? array('أسئلة شائعة','أسئلة شائعة عن تجهيز المطابخ والمحلات','إجابات عمّا يسأله عملاؤنا كثيراً عن التصنيع والتسليم والصيانة وعروض الأسعار.','أسئلة شائعة: تجهيز المطاعم، التصنيع حسب الطلب، الصيانة | مؤسسة طرابلسي')
-		: array('FAQ','Frequently asked questions','Answers to what our customers ask most about manufacturing, delivery, maintenance and quotations.','FAQ: Kitchen Equipment, Custom Manufacturing & Maintenance | Traboulsi Est. Lebanon'),
-	'contact'=>$ar ? array('اتصل بنا','اتصل بنا: اطلب عرض سعر','أرسل لنا رسالة أو زر أحد فرعينا في دير الزهراني وخلدة. فريقنا يتواصل معك قريباً.','اتصل بنا واطلب عرض سعر | مؤسسة طرابلسي - دير الزهراني وخلدة، لبنان')
-		: array('Contact','Contact us: request a quote','Send us a message or visit one of our two branches, in Deir El Zahrani and Khalde. Our team will get back to you shortly.','Contact Us & Request a Quote | Traboulsi Est., Deir El Zahrani & Khalde, Lebanon'),
-);
-if(!isset($pages[$name])) return $this->_missing();
+$names=array('products','services','about','clients','projects','faq','contact');
+if(!in_array($name,$names)) return $this->_missing();
 $data=$this->_page_data();
 if($name=='projects' && !count($data['projects'])) return $this->_missing();
-$t=$pages[$name];
+// its name, title, line under the title and Google title: control panel > Pages & texts > Texts of the pages
+$pt=$this->site_content->page_texts();
+$t=array($pt['sec_'.$name.'_name_'.$lang],$pt['sec_'.$name.'_h1_'.$lang],$pt['sec_'.$name.'_lead_'.$lang],$pt['sec_'.$name.'_title_'.$lang]);
 $schema=array($this->_crumbs(array($t[0]=>o5_url($name))));
 if($name=='faq'){
 	// the questions typed in the control panel (the built-in ones when the field is empty)
@@ -251,13 +238,10 @@ $data['section_page']=array('name'=>$t[0],'h1'=>$t[1],'lead'=>$t[2]);
 $this->_subpage($data,$lang,'section',$name,$t[3],$t[2],$schema);
 }
 
-// the sector pages of config/sectors.php, each with its address
+// the sector pages (control panel > Pages & texts > Sector pages), each with its address
 function _sectors()
 {
-$this->config->load('sectors',TRUE);
-$sectors=$this->config->item('sector_pages','sectors');
-foreach($sectors as $slug=>$sector) $sectors[$slug]['path']=$slug.'-equipment';
-return $sectors;
+return $this->site_content->sectors();
 }
 
 // the language of the page, also given to the helpers (o5_t, o5_pname, o5_url)
@@ -266,7 +250,7 @@ function _lang($lang)
 $lang=$lang=='ar' ? 'ar' : 'en';
 $this->config->load('site_lang',TRUE);
 $GLOBALS['o5_lang']=$lang;
-$GLOBALS['o5_dict']=$this->config->item('site_lang_ar','site_lang');
+$GLOBALS['o5_dict']=$this->site_content->dictionary();
 $GLOBALS['o5_pdict']=(array)$this->config->item('site_products_ar','site_lang');
 return $lang;
 }
@@ -310,6 +294,10 @@ function _render($data,$page_url,$lang='en')
 $data['page_url']=$page_url;
 $data['lang']=$lang;
 $data['sectors']=$this->_sectors();
+$data['site_dict']=$this->site_content->dictionary();
+$data['pt']=$this->site_content->page_texts();
+$data['hero_cards']=$this->site_content->rows('hero_cards'); // NULL when the table is not there: the built-in cards
+$data['guide_count']=count($this->site_content->guides());
 $data['content']='option5/home';
 $this->load->view('option5/template',$data);
 }
@@ -322,6 +310,7 @@ $data['generalinfo'] = $this->fct->getonerow("admin",$cond);
 $data['about_us'] = $this->fct->getonerow("about_us",array('id_about_us'=>1));
 $data['home_page'] = $this->fct->get_home_page();
 $data['banner']=$this->fct->getAll("banner","sort_order");
+$this->site_content->upgrade(); // products.title_ar and the texts of the category pages
 $data['categories']=$this->fct->getAll('category','sort_order'); 
 $data['products']=$this->fct->getAll('products','sort_order'); 
 $data['videos']=$this->fct->get_videos();
@@ -382,6 +371,8 @@ foreach($data['categories'] as $k=>$category){
 		// the address of its page (yoursite/product/showcase-fridge-108) and its type ("Showcase Fridge")
 		$items[$k]['slug']=o5_product_slug($item['title'],$item['id_products'],$slugs);
 		$items[$k]['cat_slug']=$category['slug'];
+		// its Arabic name (control panel > Products), read by o5_pname()
+		if(!empty($item['title_ar'])) $GLOBALS['o5_ptitles'][strtolower(o5_name($item['title']))]=$item['title_ar'];
 		$items[$k]['type']=trim(preg_replace('/\s\d{1,4}\s*$/','',o5_name($item['title'])));
 	}
 	$data['products']=array_merge($data['products'],$items);

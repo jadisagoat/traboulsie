@@ -87,6 +87,10 @@ $this->load->view("back_office/template",$data);
 else
 {
 $_data["title"]=$this->input->post("title");
+// the title and text of its page on the website (columns added by models/site_content.php)
+if($this->db->field_exists("h1_en","category")){
+foreach(array("h1_en","h1_ar","text_en","text_ar") as $page_field) $_data[$page_field]=trim((string)$this->input->post($page_field));
+}
 
 	if($this->input->post("id")!=""){
 	$_data["updated_date"]=date("Y-m-d h:i:s");
