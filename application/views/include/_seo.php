@@ -28,9 +28,12 @@ $site_url = base_url();
 $page_lang = isset($page_lang) ? $page_lang : 'en';
 $canonical = isset($lang_urls[$page_lang]) ? $lang_urls[$page_lang] : $site_url;
 $is_preview = isset($page_url) && rtrim($page_url, '/') !== rtrim($canonical, '/');
-$og_image = is_file('uploads/about_us/530x400/tra.jpg') ? $site_url.'uploads/about_us/530x400/tra.jpg' : $site_url.'images/logo.png';
+// the picture shown beside the title when the link is sent by WhatsApp, Facebook...: the logo on a white square (images/share-logo.jpg)
+$share_logo = is_file('images/share-logo.jpg');
+$og_image = $share_logo ? $site_url.'images/share-logo.jpg' : (is_file('uploads/about_us/530x400/tra.jpg') ? $site_url.'uploads/about_us/530x400/tra.jpg' : $site_url.'images/logo.png');
 // a product page is shared with the photo of the product
 $page_image = !empty($page_image) ? $page_image : $og_image;
+$share_is_logo = $share_logo && $page_image === $og_image;
 // the sector, category, product, export and guide pages bring their own structured data ($page_schema)
 $own_schema = isset($page_schema) && is_array($page_schema);
 $company = $seo_v('contact_company') !== '' ? $seo_v('contact_company') : 'Traboulsi Est. for Trading & Industry';
@@ -64,9 +67,15 @@ $company_ar = $seo_v('topbar_name_ar') !== '' ? $seo_v('topbar_name_ar') : 'مؤ
 <meta property="og:locale:alternate" content="<?=$page_lang == 'ar' ? 'en_US' : 'ar_LB'?>" />
 <meta property="og:url" content="<?=$canonical?>" />
 <meta property="og:image" content="<?=$page_image?>" />
+<?php if ($share_is_logo) { ?>
+<meta property="og:image:type" content="image/jpeg" />
+<meta property="og:image:width" content="600" />
+<meta property="og:image:height" content="600" />
+<meta property="og:image:alt" content="<?=htmlspecialchars($company, ENT_QUOTES, 'UTF-8')?>" />
+<?php } ?>
 <meta property="og:title" content="<?=$seo_e('seo_title')?>" />
 <meta property="og:description" content="<?=$seo_e('seo_description')?>" />
-<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:card" content="<?=$share_is_logo ? 'summary' : 'summary_large_image'?>" />
 <meta name="twitter:title" content="<?=$seo_e('seo_title')?>" />
 <meta name="twitter:description" content="<?=$seo_e('seo_description')?>" />
 <meta name="twitter:image" content="<?=$page_image?>" />
