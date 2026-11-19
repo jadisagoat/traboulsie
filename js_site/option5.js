@@ -214,13 +214,19 @@
 		});
 	}
 	if (nav) {
+		// on every screen the title only opens its list, it never leaves the page
+		// ("All products" / "All services" inside the list lead to the pages)
 		nav.addEventListener('click', function (e) {
-			if (window.innerWidth > 960) return;
 			var a = e.target.closest ? e.target.closest('.has-drop > a') : null;
 			if (!a || !nav.contains(a)) return;
 			e.preventDefault();
 			setDrop(a.parentNode);
+			if (!a.parentNode.classList.contains('is-expanded')) a.blur();
 		});
+		doc.addEventListener('click', function (e) {
+			if (!e.target.closest || !e.target.closest('.has-drop')) setDrop(null);
+		});
+		doc.addEventListener('keydown', function (e) { if (e.key === 'Escape') setDrop(null); });
 	}
 	if (menuToggle) {
 		menuToggle.addEventListener('click', function () { setMenu(menuToggle.getAttribute('aria-expanded') !== 'true'); });
